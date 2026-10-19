@@ -1,4 +1,4 @@
-<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 <meta name="theme-color" content="#09080c">
 <meta name="mobile-web-app-capable" content="yes">
@@ -24,7 +24,8 @@
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { background: var(--ink); color: var(--text); }
+html, body { background: var(--ink); color: var(--text); touch-action: manipulation; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+@media (pointer: coarse) { html, body { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; } .page { touch-action: manipulation; } }
 body { font-family: var(--f-ui); }
 button { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
@@ -295,7 +296,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
       <button class="keytag" id="btnGuideClose" type="button">확인</button>
     </div></div>
     <div id="title" class="screen title"><div class="t-inner">
-      <div class="t-eyebrow">NIGHT SHIFT · 나폴리탄 호텔</div>
+      <div class="t-eyebrow">NIGHT SHIFT</div>
       <h1 class="t-logo"><span>夜間勤務</span></h1>
       <p class="t-sub">규칙은 이해하려고 하지 말고, 그대로 지키십시오.</p>
       <div id="tMain" class="t-btns">
@@ -605,6 +606,10 @@ async function goto(id, x, y, dir) {
   await fadeTo(0, 170);
   if (G.room.onEnter) await G.room.onEnter(from);
 }
+function canEnter(o, tx, ty) {
+  if (o.enterFrom !== 'below') return true;
+  return G.p.dir === 'up' && ty === o.y + (o.h || 1) - 1 && G.p.y === o.y + (o.h || 1);
+}
 async function enterObj(o) { const before = G.roomId; await o.enter(o); if (G.roomId === before) G.doorBlock = o; }
 
 /* ---------------- 숨기 ---------------- */
@@ -700,6 +705,13 @@ function onKeyUp(code) { if (code === 'ShiftLeft' || code === 'ShiftRight' || co
 addEventListener('keydown', e => { if (G.state !== 'title' && (KEYDIR[e.code] || e.code === 'Space')) e.preventDefault(); onKeyDown(e.code, e.repeat); });
 addEventListener('keyup', e => onKeyUp(e.code));
 addEventListener('blur', () => { G.keyOrder = []; G.shift = false; });
+/* 모바일: 두 번 탭·핀치 확대, 길게 눌러 메뉴, 당겨서 새로고침 방지 */
+['gesturestart', 'gesturechange', 'gestureend'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('dblclick', e => e.preventDefault(), { passive: false });
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+let lastTouchEnd = 0;
+document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouchEnd < 350 && !e.target.closest('input, textarea')) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
+document.addEventListener('contextmenu', e => { if (matchMedia('(pointer: coarse)').matches) e.preventDefault(); });
 const buzz = () => { try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) { } };
 document.querySelectorAll('#touch [data-k]').forEach(b => {
   const k = b.dataset.k;
@@ -731,7 +743,7 @@ function interact() {
   const n = npcsHere().find(n => n.x === x && n.y === y); if (n && n.talk) return run(n.talk);
   const o = objAt(x, y); if (!o) return;
   if (o.act) return run(() => o.act(o));
-  if (o.enter) return run(() => enterObj(o));
+  if (o.enter && canEnter(o, x, y)) return run(() => enterObj(o));
   if (o.msg) return run(() => sayAll(typeof o.msg === 'function' ? o.msg() : o.msg));
 }
 
@@ -747,7 +759,7 @@ function updatePlayer(dt) {
   const d = heldDir(); if (!d) { p.run = false; return; }
   p.dir = d; const [dx, dy] = DIRS[d], nx = p.x + dx, ny = p.y + dy;
   const o = objAt(nx, ny);
-  if (o && o.enter) { if (G.doorBlock !== o) run(() => enterObj(o)); return; }
+  if (o && o.enter) { if (canEnter(o, nx, ny) && G.doorBlock !== o) run(() => enterObj(o)); return; }
   if (blocked(nx, ny)) return;
   p.run = G.shift; p.tx = nx; p.ty = ny; p.moving = true; p.stepN++; if (p.stepN % (p.run ? 1 : 2) === 0) sfx.step();
 }
@@ -1437,8 +1449,8 @@ const ROOMS = {
       O('book', 12, 5, { top: true, msg: ['방명록. 마지막 서명은 1994년 4월 3일.', '그 아래로는 몇십 장이 모두 비어 있다.'] }),
       O('phone', 13, 5, { top: true, state: () => timer('ring1') ? 'ring' : G.flags.stairOpen ? 'blue' : 'off', act: () => G.flags.stairOpen && !timer('ring1') ? savePhone() : deadPhone('ring1') }),
       O('dlamp', 14, 5, { top: true, glow: [16, -6, 80], msg: '카운터 스탠드. 갓 안쪽에 나방 한 마리가 붙어 있다.' }),
-      O('grandstair', 2, 3, { w: 3, h: 5, enter: door('corridor2', 14, 9, 'up'), msg: '2층 객실 복도로 올라가는 계단.' }),
-      O('grandstair', 19, 3, { w: 3, h: 5, enter: door('corridor2', 15, 9, 'up'), msg: '2층 객실 복도로 올라가는 계단.' }),
+      O('grandstair', 2, 3, { w: 3, h: 5, enterFrom: 'below', enter: door('corridor2', 14, 9, 'up'), msg: '2층 객실 복도로 올라가는 계단.' }),
+      O('grandstair', 19, 3, { w: 3, h: 5, enterFrom: 'below', enter: door('corridor2', 15, 9, 'up'), msg: '2층 객실 복도로 올라가는 계단.' }),
       O('plant', 5, 6, { msg: '고사리 화분. 잎 끝이 젖어 있다.' }), O('bust', 5, 7, { msg: '창업주 흉상. 콧날에 먼지가 없다.' }),
       O('plant', 18, 6, { msg: '고사리 화분.' }), O('bust', 18, 7, { msg: '흉상. 시선이 서비스 계단 쪽을 향해 있다.' }),
       O('candelabra', 1, 9, { glow: [16, -14, 90], msg: '촛대. 촛농이 거꾸로 흘러 있다.' }), O('candelabra', 22, 9, { glow: [16, -14, 90], msg: '촛대. 불꽃이 바람 없이 기울어 있다.' }),
