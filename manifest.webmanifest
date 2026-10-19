@@ -1,0 +1,20 @@
+{
+  "name": "야간근무: 백야 호텔",
+  "short_name": "야간근무",
+  "description": "수칙 10개를 지켜야 하는 나폴리탄 괴담 호텔 탈출 게임",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#09080c",
+  "theme_color": "#09080c",
+  "lang": "ko",
+  "categories": ["games"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
