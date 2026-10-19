@@ -249,6 +249,17 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
 .rot-phone { width: 46px; height: 78px; border: 3px solid var(--brass); border-radius: 9px; position: relative; animation: rot 2.4s ease-in-out infinite; }
 .rot-phone::after { content: ''; position: absolute; left: 50%; bottom: 5px; width: 12px; height: 3px; margin-left: -6px; border-radius: 2px; background: var(--brass); }
 @keyframes rot { 0%, 25% { transform: rotate(-90deg); } 55%, 100% { transform: rotate(0deg); } }
+#overStory { margin: 0; font-family: var(--f-display); color: #ead6cf; font-size: clamp(13px, 2.2cqw, 18px); line-height: 1.8; max-width: 34em; text-wrap: balance; }
+#caption { position: absolute; left: 50%; bottom: 11%; transform: translateX(-50%); z-index: 4; max-width: 80%; text-align: center; font-family: var(--f-display); color: #e8e0d0; font-size: clamp(12px, 2cqw, 17px); text-shadow: 0 1px 2px #000, 0 0 10px #000; letter-spacing: .04em; opacity: 0; transition: opacity .6s; pointer-events: none; }
+#caption.on { opacity: 1; }
+body.cine #hud, body.cine #toast, body.cine #caption, body.cine #chaseTag, body.cine #flash { visibility: hidden; }
+.lb-bar { position: absolute; left: 0; right: 0; height: 0; background: #000; z-index: 3; transition: height .6s ease; pointer-events: none; }
+.lb-bar.top { top: 0; } .lb-bar.bot { bottom: 0; }
+.game.lb .lb-bar { height: 9%; }
+#peek { background: #000; z-index: 6; }
+.peek-in { display: grid; justify-items: center; gap: 12px; text-align: center; }
+#peekC { width: min(60cqw, 300px); height: auto; image-rendering: pixelated; }
+#peekT { margin: 0; font-family: var(--f-display); color: #e0d6c8; max-width: 26em; line-height: 1.7; min-height: 3.4em; font-size: clamp(12px, 2cqw, 16px); }
 @media (prefers-reduced-motion: reduce) { .title::before, #chaseTag, #dlgNext { animation: none; } #flash.go { animation-duration: .01s; } }
 </style>
 </head><body style="margin:0">
@@ -269,6 +280,8 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
     <div id="toast" hidden></div>
     <div id="hideTag" hidden>숨어 있다 · Space로 나가기</div>
     <div id="flash"></div>
+    <div id="caption"></div>
+    <div class="lb-bar top"></div><div class="lb-bar bot"></div>
 
     <div id="inv" class="ovl" hidden><div class="panel">
       <div class="ptitle">소지품 <small id="invCount"></small></div>
@@ -293,6 +306,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
       <div class="phint">숫자키 입력 · Backspace 지우기 · Esc 닫기</div>
     </div></div>
 
+    <div id="peek" class="ovl" hidden><div class="peek-in"><canvas id="peekC" width="200" height="200"></canvas><p id="peekT"></p><span class="phint">Space · 화면을 눌러 눈을 뗀다</span></div></div>
     <div id="doc" class="ovl" hidden><article class="paper" id="docBody"></article></div>
 
     <div id="fade"><div id="fadeText"></div></div>
@@ -300,7 +314,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
     <div id="dlg" hidden><div id="dlgName"></div><div id="dlgText"></div><div id="dlgOpts" hidden></div><div id="dlgNext" hidden>▼</div></div>
 
     <div id="over" class="ovl screen" hidden><div class="over-inner">
-      <h2 id="overTitle">잡혔다</h2><div id="overRule" hidden></div><p id="overTip"></p>
+      <h2 id="overTitle">잡혔다</h2><div id="overRule" hidden></div><p id="overStory" hidden></p><p id="overTip"></p>
       <div class="t-btns"><button class="keytag" id="btnRetry" type="button">마지막 기록부터 다시</button><button class="keytag ghost" id="btnOverLoad" type="button">기록 불러오기</button><button class="keytag ghost" id="btnTitle1" type="button">타이틀로</button></div>
     </div></div>
 
@@ -343,6 +357,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
     <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> 이동</span>
     <span><kbd>Space</kbd> <kbd>Enter</kbd> 조사 · 대화 넘기기</span>
     <span><kbd>Shift</kbd> 달리기</span>
+    <span><kbd>F</kbd> 랜턴</span>
     <span><kbd>I</kbd> 소지품</span>
     <span><kbd>M</kbd> 지도</span>
     <span><kbd>L</kbd> 불러오기</span>
@@ -351,7 +366,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
 
   <div id="touch" aria-hidden="true">
     <div class="dpad" id="dpad"><div class="dp-h"></div><div class="dp-v"></div><div class="dp-c"></div><span class="ar u">▲</span><span class="ar d">▼</span><span class="ar l">◀</span><span class="ar r">▶</span></div>
-    <div class="mid"><button class="pill" type="button" id="padLoad">불러오기</button><button class="pill" type="button" id="padMute">소리</button><button class="pill" type="button" id="padFull">전체화면</button></div>
+    <div class="mid"><button class="pill" type="button" id="padLamp">랜턴</button><button class="pill" type="button" id="padLoad">불러오기</button><button class="pill" type="button" id="padMute">소리</button><button class="pill" type="button" id="padFull">전체화면</button></div>
     <div class="abxy"><button class="b-x" data-k="KeyI" type="button"><b>X</b><i>소지품</i></button><button class="b-y" data-k="KeyM" type="button"><b>Y</b><i>지도</i></button><button class="b-a" data-k="Space" type="button"><b>A</b><i>조사</i></button><button class="b-b" data-k="Run" type="button"><b>B</b><i>달리기</i></button></div>
   </div>
 </div>
@@ -544,7 +559,7 @@ function drawIcon(cnv, type) {
 function showDoc(id) {
   return new Promise(res => {
     const d = DOCS[id], el = $('#doc'), body = $('#docBody');
-    body.innerHTML = `<header><div class="lh">${d.head || '白夜 HOTEL'}</div><h3>${fmt(d.title)}</h3>${d.sub ? `<p class="sub">${fmt(d.sub)}</p>` : ''}</header>${fmt(typeof d.body === 'function' ? d.body() : d.body)}<button type="button" class="paper-close" id="docClose">닫기 · Space</button>`;
+    body.innerHTML = `<header><div class="lh">${d.head || '白夜 HOTEL'}</div><h3>${fmt(d.title)}</h3>${d.sub && (typeof d.sub !== 'function' || d.sub()) ? `<p class="sub">${fmt(typeof d.sub === 'function' ? d.sub() : d.sub)}</p>` : ''}</header>${fmt(typeof d.body === 'function' ? d.body() : d.body)}<button type="button" class="paper-close" id="docClose">닫기 · Space</button>`;
     el.hidden = false; body.scrollTop = 0;
     const close = () => { el.hidden = true; G.ui = null; res(); };
     $('#docClose').onclick = close;
@@ -647,8 +662,8 @@ function openLoad() {
 }
 function restore(cp) {
   G.flags = JSON.parse(JSON.stringify(cp.flags)); G.inv = [...cp.inv]; G.visited = { ...cp.visited }; G.hero = { ...cp.hero };
-  G.monster = null; G.chase = null; G.timers = {}; chaseMusic(false); G.p.hidden = false; G.p.hideFront = null;
-  ['#over', '#end', '#title', '#inv', '#mapO', '#pad', '#doc', '#loadO'].forEach(s => { $(s).hidden = true; });
+  G.monster = null; G.chase = null; G.timers = {}; G.cine = null; document.body.classList.remove('cine'); G.popM = null; G.balloon = 0; G.zoomPulse = 0; G.fx = []; G.lanternOn = true; letterbox(false); $('#overStory').hidden = true; chaseMusic(false); G.p.hidden = false; G.p.hideFront = null; G.p.unhideAt = 0;
+  ['#over', '#end', '#title', '#inv', '#mapO', '#pad', '#doc', '#loadO', '#peek'].forEach(s => { $(s).hidden = true; });
   dlg.hidden = true; G.ui = null; $('#hideTag').hidden = true; G.keyOrder = [];
   Object.values(ROOMS).forEach(R => { if (R.reset) R.reset(); });
   loadRoom(cp.room); setPos(cp.x, cp.y, cp.dir);
@@ -676,11 +691,18 @@ async function enterObj(o) { const before = G.roomId; await o.enter(o); if (G.ro
 
 /* ---------------- 숨기 ---------------- */
 async function hideIn(o) {
-  if (G.monster) { const d = Math.abs(G.monster.x - G.p.x) + Math.abs(G.monster.y - G.p.y); if (d < 3) { sfx.deny(); return say('', '너무 가깝다! 지금 숨으면 들킨다.'); } }
-  G.p.hidden = true; G.p.hideFront = { x: G.p.x, y: G.p.y }; sfx.door(); $('#hideTag').hidden = false;
+  G.p.hideSeen = false;
+  if (G.monster) {
+    const d = Math.abs(G.monster.x - G.p.x) + Math.abs(G.monster.y - G.p.y);
+    if (d < 2) { G.busy = false; return gameOver('caught', 'late'); }
+    if (d < 3) { sfx.deny(); return say('', '너무 가깝다! 지금 숨으면 들킨다.'); }
+    if (d < 5) G.p.hideSeen = true;
+  }
+  G.p.hidden = true; G.p.hideFront = { x: G.p.x, y: G.p.y }; G.p.hideAt = G.t; sfx.door(); $('#hideTag').hidden = false;
   if (!G.chase) await say('', o.hideMsg || '좁은 틈에 몸을 숨겼다. 숨소리마저 크게 들린다.');
+  else if (G.p.hideSeen) caption('…숨는 모습을 들킨 것 같다.', 2000);
 }
-function unhide() { G.p.hidden = false; $('#hideTag').hidden = true; sfx.door(); }
+function unhide() { G.p.hidden = false; G.p.unhideAt = G.t; $('#hideTag').hidden = true; sfx.door(); }
 
 /* ---------------- 추격 ---------------- */
 function startChase(o) {
@@ -697,7 +719,7 @@ function spawnMonster(x, y) {
     for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) { const nx = cx + dx, ny = cy + dy, k = nx + ',' + ny; if (nx < 0 || ny < 0 || nx >= R.w || ny >= R.h || seen.has(k)) continue; seen.add(k); q.push([nx, ny]); }
   }
   if (!spot) return;
-  G.monster = { x: spot[0], y: spot[1], px: spot[0] * TS, py: spot[1] * TS, tx: spot[0], ty: spot[1], moving: false, dir: 'down', anim: 0, wait: 0 };
+  G.monster = { x: spot[0], y: spot[1], px: spot[0] * TS, py: spot[1] * TS, tx: spot[0], ty: spot[1], moving: false, dir: 'down', anim: 0, wait: 0, popT: G.t }; G.balloon = G.t; G.zoomPulse = G.t;
   G.flick = 0.4;
 }
 function nextStep(sx, sy, gx, gy) {
@@ -717,33 +739,137 @@ function endChase() { const c = G.chase; G.chase = null; G.monster = null; chase
 function updateChase(dt) {
   const ch = G.chase;
   if (ch.pending && ch.pending.room === G.roomId) { ch.pending.t -= dt; if (ch.pending.t <= 0) { const pd = ch.pending; ch.pending = null; spawnMonster(pd.x, pd.y); } }
-  if (!ch.persistent && !ch.dormant) { ch.time -= dt; if (ch.time <= 0) monsterLeaves(); }
+  if (!ch.persistent && !ch.dormant) { ch.time -= dt * (lanternLit() ? 1 : 1.6); if (ch.time <= 0) monsterLeaves(); }
 }
 function updateMonster(dt) {
   const m = G.monster; if (!m || !G.chase) return; m.anim += dt;
-  if (m.moving) { const sp = G.chase.speed * TS * dt; m.px = approach(m.px, m.tx * TS, sp); m.py = approach(m.py, m.ty * TS, sp); if (m.px === m.tx * TS && m.py === m.ty * TS) { m.moving = false; m.x = m.tx; m.y = m.ty; } }
+  if (m.moving) { const sp = G.chase.speed * (lanternLit() ? 1 : 0.82) * TS * dt; m.px = approach(m.px, m.tx * TS, sp); m.py = approach(m.py, m.ty * TS, sp); if (m.px === m.tx * TS && m.py === m.ty * TS) { m.moving = false; m.x = m.tx; m.y = m.ty; } }
   if (!m.moving) {
     let gx, gy;
-    if (G.p.hidden) { gx = G.p.hideFront.x; gy = G.p.hideFront.y; if (Math.abs(m.x - gx) + Math.abs(m.y - gy) <= 1) { m.wait += dt; if (m.wait > 2.2) { monsterLeaves(); return; } } else m.wait = 0; }
+    if (G.p.hidden) { gx = G.p.hideFront.x; gy = G.p.hideFront.y; if (Math.abs(m.x - gx) + Math.abs(m.y - gy) <= 1) { m.wait += dt; if (G.p.hideSeen && m.wait > 1.3) { return gameOver('caught', 'found'); } if (m.wait > 2.2) { monsterLeaves(); return; } } else m.wait = 0; }
     else { gx = G.p.moving ? G.p.tx : G.p.x; gy = G.p.moving ? G.p.ty : G.p.y; }
     if (!(G.p.hidden && Math.abs(m.x - gx) + Math.abs(m.y - gy) <= 1)) {
       const st = nextStep(m.x, m.y, gx, gy);
       if (st && !(G.p.hidden && st[0] === gx && st[1] === gy)) { m.dir = st[0] > m.x ? 'right' : st[0] < m.x ? 'left' : st[1] > m.y ? 'down' : 'up'; m.tx = st[0]; m.ty = st[1]; m.moving = true; }
     }
   }
-  if (!G.p.hidden && Math.hypot(m.px - G.p.px, m.py - G.p.py) < TS * 0.72) gameOver('caught');
+  if (!G.p.hidden && Math.hypot(m.px - G.p.px, m.py - G.p.py) < TS * 0.72) gameOver('caught', (G.p.unhideAt && G.t - G.p.unhideAt < 1.2) ? 'exit' : 'open');
 }
+const CAUGHT = {
+  open: { title: '잡혔다', lines: ['차가운 손가락이 뒷목을 움켜쥐었다.', '돌아볼 틈도 없었다.', '숨이 닿을 만큼 가까이에서, 무언가 웃었다.'], tips: ['Shift를 누르고 있으면 달릴 수 있다.', '그것은 문을 지나 따라온다. 문을 넘는 순간의 틈을 이용하자.', '랜턴(F)을 끄면 그것이 느려지고 더 빨리 포기한다. 대신 나도 거의 보이지 않는다.'] },
+  found: { title: '들켰다', lines: ['문틈으로 숨을 죽였다.', '…발소리가 바로 앞에서 멈췄다. 떠나지 않는다.', '천천히, 문이 열렸다.'], tips: ['숨는 모습을 들키면 소용이 없다. 4칸 이상 거리를 벌린 뒤에 숨자.', '그것의 시야 밖에서, 모퉁이를 돈 다음 숨는 것이 안전하다.'] },
+  exit: { title: '너무 일렀다', lines: ['발소리가 멀어진 줄 알았다.', '문을 밀고 나오자—', '바로 앞에, 그것이 기다리고 있었다.'], tips: ['발소리가 완전히 사라지고, 「…발소리가 멀어졌다」는 문구가 뜰 때까지 나오지 말자.', '숨은 곳에서 나오기 전에 화면 가장자리의 붉은 기운이 사라졌는지 확인하자.'] },
+  late: { title: '숨을 틈이 없었다', lines: ['옷장 문을 여는 순간, 문짝 위로 손 하나가 먼저 얹혔다.', '닫히지 않는다.'], tips: ['그것이 2칸 안에 있으면 숨을 수 없다. 먼저 달려서 거리를 벌리자.'] }
+};
+const CINE_PRE = { open: 0.85, exit: 0.55, found: 1.6, late: 0.9 }, CINE_STROBE = 0.55, CINE_END = 2.1;
 function gameOver(kind, rule, text) {
   if (G.state !== 'play') return;
-  G.state = 'over'; chaseMusic(false); sfx.stinger(); G.shake = 0.6; G.white = 0.3; dlg.hidden = true; G.ui = null;
-  const tips = ['Shift를 누르고 있으면 달릴 수 있다.', '옷장 · 린넨실 · 캐비닛 앞에서 Space를 누르면 숨을 수 있다.', '너무 가까우면 숨을 수 없다. 거리를 벌린 뒤에 숨자.', '그것은 문을 지나 따라온다. 문을 넘는 순간의 틈을 이용하자.'];
-  setTimeout(() => {
-    $('#overTitle').textContent = kind === 'rule' ? '규칙 위반' : '잡혔다';
-    $('#overRule').textContent = kind === 'rule' ? `수칙 ${rule}` : ''; $('#overRule').hidden = kind !== 'rule';
-    $('#overTip').textContent = kind === 'rule' ? fmt(text || '') : tips[Math.floor(Math.random() * tips.length)];
-    $('#over').hidden = false;
-    G.ui = { key(code) { if (isConfirm(code)) $('#btnRetry').click(); } };
-  }, kind === 'rule' ? 900 : 700);
+  G.state = 'over'; chaseMusic(false); dlg.hidden = true; G.ui = null; letterbox(false);
+  if (kind === 'caught') {
+    const v = CAUGHT[rule] || CAUGHT.open, k = rule || 'open', pre = CINE_PRE[k] || 0.8;
+    G.cine = { kind: k, t0: G.t, look: G.chase ? G.chase.look : 'ghost', pre };
+    G.p.hidden = false; $('#hideTag').hidden = true; letterbox(true); setTimeout(() => document.body.classList.add('cine'), pre * 1000);
+    const m = G.monster;
+    if (m) { const sx = Math.sign(m.px - G.p.px) || 1; m.px = G.p.px + sx * 9; m.py = G.p.py - 3; m.moving = false; m.dir = sx > 0 ? 'left' : 'right'; }
+    if (k === 'found' || k === 'late') { tone(90, 0.6, 'triangle', 0.2); noise(0.3, 0.12, 300); }
+    else { tone(55, 0.5, 'sawtooth', 0.22, 0, 40); noise(0.25, 0.2, 400); G.shake = 0.5; }
+    const at = ms => setTimeout(fn => fn, ms);
+    setTimeout(() => { sfx.stinger(); G.shake = 0.9; for (let i = 0; i < 5; i++) noise(0.07, 0.25, 900 + i * 300, i * 0.1, 1); }, pre * 1000);
+    setTimeout(() => { tone(45, 1.8, 'sawtooth', 0.18, 0, 30); [0.15, 0.55, 0.95].forEach(d => noise(0.16, 0.32, 220, d, 2)); }, (pre + CINE_STROBE) * 1000);
+    setTimeout(() => { G.cine = null; letterbox(false); document.body.classList.remove('cine'); showOver(v.title, '', v.lines.join(' '), v.tips[Math.floor(Math.random() * v.tips.length)]); }, (pre + CINE_STROBE + CINE_END) * 1000);
+    return;
+  }
+  sfx.stinger(); G.shake = 0.6; G.white = 0.3;
+  setTimeout(() => showOver('규칙 위반', `수칙 ${rule}`, '', fmt(text || '')), 900);
+}
+function showOver(title, rule, story, tip) {
+  $('#overTitle').textContent = title;
+  $('#overRule').textContent = rule; $('#overRule').hidden = !rule;
+  $('#overStory').textContent = story; $('#overStory').hidden = !story;
+  $('#overTip').textContent = tip;
+  $('#over').hidden = false;
+  G.ui = { key(code) { if (isConfirm(code)) $('#btnRetry').click(); } };
+}
+const oniCv = document.createElement('canvas'); oniCv.width = 40; oniCv.height = 40; const oniCx = oniCv.getContext('2d');
+// 잡혔을 때 화면을 가득 채우는 큰 얼굴 (도트, 40x40)
+function oniFace(L, mouth, t) {
+  const c = oniCx, R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x, y, w, h); };
+  c.clearRect(0, 0, 40, 40);
+  const hair = L.hair || '#0c0a0c', skin = L.skin || '#e8e6e0', long = L.style === 'long';
+  R(5, 1, 30, 8, hair); R(3, 4, 34, 10, hair); if (long) { R(2, 8, 7, 32, hair); R(31, 8, 7, 32, hair); } else { R(4, 8, 4, 14, hair); R(32, 8, 4, 14, hair); }
+  R(9, 7, 22, 27, skin); R(7, 11, 26, 18, skin); R(11, 33, 18, 3, skin);
+  R(9, 26, 22, 8, 'rgba(0,0,0,.14)'); R(7, 11, 2, 18, 'rgba(0,0,0,.18)'); R(31, 11, 2, 18, 'rgba(0,0,0,.18)');
+  R(9, 7, 22, 4, hair); R(12, 10, 5, 2, hair); R(24, 10, 4, 2, hair); // 앞머리
+  const red = L.eyes === 'red', ey = 14 - Math.round(mouth * 1);
+  R(11, ey, 7, 6, '#050203'); R(22, ey, 7, 6, '#050203'); R(12, ey - 1, 5, 1, 'rgba(0,0,0,.4)'); R(23, ey - 1, 5, 1, 'rgba(0,0,0,.4)');
+  const blink = Math.sin(t * 9) > 0.92 ? 0 : 1;
+  if (blink) { R(14, ey + 2, 2, 2, red ? '#ff2a2a' : '#d8d0c0'); R(25, ey + 2, 2, 2, red ? '#ff2a2a' : '#d8d0c0'); if (!red) { R(14, ey + 2, 1, 1, '#c4141c'); R(25, ey + 2, 1, 1, '#c4141c'); } }
+  if (long) { R(19, 7, 4, 16, hair); R(21, 14, 9, 7, hair); } // 머리카락이 한쪽 눈을 가림
+  R(19, 21, 2, 2, 'rgba(0,0,0,.35)');
+  const mw = Math.round(8 + mouth * 14), mh = Math.max(1, Math.round(1 + mouth * 9)), mx = 20 - (mw >> 1), my = 26 - (mh >> 2);
+  R(mx, my, mw, mh, '#120002'); R(mx + 1, my - 1, mw - 2, 1, '#120002'); R(mx + 1, my + mh, mw - 2, 1, '#120002');
+  if (mouth > 0.15) { for (let x = mx + 1; x < mx + mw - 1; x += 2) { R(x, my, 1, Math.max(1, mh >> 2), '#efe8da'); R(x, my + mh - Math.max(1, mh >> 2), 1, Math.max(1, mh >> 2), '#efe8da'); } R(mx + 2, my + (mh >> 1), mw - 4, 1, '#5a0008'); }
+  else { R(mx - 1, my - 1, 1, 1, '#120002'); R(mx + mw, my - 1, 1, 1, '#120002'); }
+}
+function cineInWorld() { return G.cine && (G.cine.kind === 'open' || G.cine.kind === 'exit') && G.t - G.cine.t0 < G.cine.pre; }
+function drawCine() {
+  const c = G.cine, t = G.t - c.t0, W = cv.width, H = cv.height, L = LOOKS[c.look] || LOOKS.ghost;
+  const face = (scale, ox = 0, oy = 0, alpha = 1, mouth = 0) => {
+    oniFace(L, mouth, t);
+    ctx.save(); ctx.imageSmoothingEnabled = false; ctx.globalAlpha = alpha;
+    const jx = (Math.random() - 0.5) * 6, jy = (Math.random() - 0.5) * 6, w = 40 * scale * 0.8, X = W / 2 - w / 2 + ox + jx, Y = H / 2 - w / 2 + oy + jy;
+    const g = ctx.createRadialGradient(W / 2 + ox, H / 2 + oy, 0, W / 2 + ox, H / 2 + oy, w * 0.7); g.addColorStop(0, 'rgba(120,10,16,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(oniCv, X, Y, w, w); ctx.restore();
+  };
+  const redwash = a => { ctx.fillStyle = `rgba(140,0,10,${a})`; ctx.fillRect(0, 0, W, H); };
+  const lines = n => { ctx.fillStyle = 'rgba(255,255,255,.08)'; for (let i = 0; i < n; i++) ctx.fillRect(0, Math.random() * H, W, 1 + Math.random() * 2); };
+  if (t < c.pre) {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    if (c.kind === 'found') {
+      const open = clamp((t - 1.1) / 0.45, 0, 1), gap = 6 + open * W * 0.45;
+      if (t > 1.1) face(10 + open * 2);
+      ctx.fillStyle = '#2a1a10'; ctx.fillRect(0, 0, W / 2 - gap / 2, H); ctx.fillRect(W / 2 + gap / 2, 0, W / 2 - gap / 2, H);
+      ctx.fillStyle = 'rgba(0,0,0,.35)'; for (let i = 0; i < 8; i++) { ctx.fillRect(0, 20 + i * (H / 8), W / 2 - gap / 2, 4); ctx.fillRect(W / 2 + gap / 2, 20 + i * (H / 8), W / 2 - gap / 2, 4); }
+      if (t < 1.1) { ctx.fillStyle = `rgba(255,200,140,${0.25 + 0.1 * Math.sin(t * 20)})`; ctx.fillRect(W / 2 - 3, 0, 6, H); if (t > 0.5) { ctx.fillStyle = 'rgba(0,0,0,.9)'; ctx.fillRect(W / 2 - 3, H * 0.35, 6, H * 0.4); } }
+    } else if (c.kind === 'late') {
+      const sl = clamp(t / 0.5, 0, 1);
+      ctx.fillStyle = '#2a1a10'; ctx.fillRect(W * 0.15, 0, W * 0.7, H);
+      ctx.fillStyle = L.skin; const hx = W * 0.15 + W * 0.7 * (1 - sl) - 40; ctx.fillRect(hx, H * 0.45, 120, 26); for (let i = 0; i < 4; i++) ctx.fillRect(hx + i * 24, H * 0.45 - 18, 14, 20);
+    }
+  } else if (t < c.pre + CINE_STROBE) {
+    // 아오오니식 점멸: 검정 / 핏빛 / 얼굴이 번갈아 번쩍
+    const f = Math.floor((t - c.pre) / 0.07) % 3;
+    if (f === 0) { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); }
+    else if (f === 1) { ctx.fillStyle = '#7a0008'; ctx.fillRect(0, 0, W, H); face(13, 0, 0, 0.9, 0.6); }
+    else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); face(16, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 30, 1, 1); redwash(0.35); }
+    lines(20);
+  } else {
+    // 마지막: 검은 화면, 위에서 흘러내리는 붉은 줄, 천천히 다가오며 벌어지는 입
+    const k = clamp((t - c.pre - CINE_STROBE) / CINE_END, 0, 1);
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H);
+    face(7 + k * 7, 0, 18 - k * 18, 0.35 + k * 0.65, clamp(k * 1.4, 0, 1));
+    ctx.fillStyle = 'rgba(120,0,8,.85)';
+    for (let i = 0; i < 26; i++) { const x = (hsh(i, 7) % W), len = (hsh(i, 9) % 100) / 100 * H * k * 1.2; ctx.fillRect(x, 0, 2 + (i % 3), len); ctx.beginPath(); ctx.arc(x + 1.5, len, 2.5, 0, 7); ctx.fill(); }
+    redwash(0.18 + 0.12 * Math.sin(t * 22)); lines(8);
+  }
+  const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.2, W / 2, H / 2, W * 0.6); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.85)'); ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+const zc = document.createElement('canvas'), zx = zc.getContext('2d');
+function applyZoom(z, fx, fy) {
+  if (z <= 1.001) return;
+  zc.width = cv.width; zc.height = cv.height; zx.drawImage(cv, 0, 0);
+  const sw = cv.width / z, sh = cv.height / z, sx = clamp(fx - sw / 2, 0, cv.width - sw), sy = clamp(fy - sh / 2, 0, cv.height - sh);
+  ctx.save(); ctx.imageSmoothingEnabled = false; ctx.drawImage(zc, sx, sy, sw, sh, 0, 0, cv.width, cv.height); ctx.restore();
+}
+async function ambush(o) {
+  letterbox(true);
+  if (o.push) { setPos(o.push[0], o.push[1], o.push[2]); }
+  G.popM = { x: o.x, y: o.y, look: o.look || 'ghost', t0: G.t }; G.balloon = G.t; G.zoomPulse = G.t;
+  G.shake = 0.55; G.white = 0.2; G.flick = 0.5; sfx.stinger(); tone(70, 0.9, 'sawtooth', 0.22, 0, 50);
+  if (o.msg) caption(o.msg, 2600);
+  await wait(1000);
+  G.popM = null; letterbox(false);
+  startChase(Object.assign({ delay: 0 }, o));
 }
 async function die(rule, lines, text) {
   G.flick = 1; G.shake = 0.5;
@@ -762,6 +888,7 @@ function onKeyDown(code, repeat) {
   if (isConfirm(code)) interact();
   else if (code === 'KeyI') run(openInventory);
   else if (code === 'KeyL') run(openLoad);
+  else if (code === 'KeyF') toggleLantern();
   else if (code === 'KeyM') { if (has('map')) run(openMap); else toast('아직 지도를 받지 않았다.'); }
 }
 function onKeyUp(code) { if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'Run') { G.shift = false; return; } G.keyOrder = G.keyOrder.filter(k => k !== code); if (KEYDIR[code]) G.doorBlock = null; }
@@ -840,6 +967,16 @@ function update(dt) {
   updateMonster(dt);
   if (G.room.tick) G.room.tick(dt);
   if (Math.random() < dt * 0.03) G.flick = 0.15 + Math.random() * 0.15;
+  // 근접 연출
+  G.near = 0;
+  if (G.monster) { const d = Math.hypot(G.monster.px - G.p.px, G.monster.py - G.p.py) / TS; G.near = clamp(1 - d / 8, 0, 1); G.hbT = (G.hbT || 0) - dt; if (G.near > 0.35 && G.hbT <= 0) { G.hbT = 0.75 - G.near * 0.45; sfx.heart(); } }
+  // 무작위 이상 현상
+  if (!G.chase && G.flags.introDone) {
+    G.anomT = (G.anomT === undefined ? 14 : G.anomT) - dt * (1 + (G.flags.taint || 0) * 0.35);
+    if (G.anomT <= 0) { G.anomT = 16 + Math.random() * 18; if (typeof anomaly === 'function') anomaly(); }
+    if ((G.flags.taint || 0) >= 2 && Math.random() < dt * 0.04 * G.flags.taint) { G.flick = 0.25; G.white = 0.05; }
+  }
+  G.fx = (G.fx || []).filter(f => G.t - f.t0 < f.life);
 }
 function refreshHud() {
   const loc = G.room ? G.room.name : '';
@@ -867,8 +1004,11 @@ function camera() {
   return { x: Math.round(cx), y: Math.round(cy) };
 }
 function frameOf(e) { return e.moving ? (Math.floor((e.anim || 0) * 8) % 2 ? 1 : 2) : 0; }
-function drawObj(o) { const f = DRAW[o.type]; if (f) f(ctx, o.x * TS, o.y * TS, o); }
-function heroLook() { return Object.assign({}, LOOKS[G.hero.gender], { lantern: has('lantern') }); }
+function drawObj(o) {
+  const f = DRAW[o.type]; if (f) f(ctx, o.x * TS, o.y * TS, o);
+  if (o.memo && !G.flags['memo' + o.memo]) { const X = o.x * TS + (o.w || 1) * TS - 12, Y = o.y * TS + 4; ctx.fillStyle = '#ece4cf'; ctx.fillRect(X, Y, 8, 6); ctx.fillStyle = '#8a7a62'; ctx.fillRect(X + 1, Y + 2, 6, 1); if (Math.floor(G.t * 2.5) % 3 === 0) { ctx.fillStyle = '#fff'; ctx.fillRect(X + 6, Y - 2, 2, 2); } }
+}
+function heroLook() { return Object.assign({}, LOOKS[G.hero.gender], { lantern: has('lantern'), lanternOff: !lanternLit() }); }
 function render() {
   ctx.fillStyle = '#000'; ctx.fillRect(0, 0, cv.width, cv.height);
   if (!G.room) return;
@@ -876,26 +1016,61 @@ function render() {
   if (G.shake > 0) { sx = (Math.random() - 0.5) * 8; sy = (Math.random() - 0.5) * 8; }
   ctx.save(); ctx.translate(-cam.x + sx, -cam.y + sy);
   ctx.drawImage(G.room._bg, 0, 0);
+  (G.fx || []).forEach(f => { if (f.room === G.roomId && f.layer !== 'top') drawFx(f); });
   const ds = [], over = [];
   G.room.objs.forEach(o => { if (o.show && !o.show()) return; if (o.over) { over.push(o); return; } ds.push({ z: (o.y + (o.h || 1)) * TS + (o.top ? 0.2 : 0) - (o.flat ? 1000 : 0), f: () => drawObj(o) }); });
   npcsHere().forEach(n => ds.push({ z: n.py + TS + 0.4, f: () => drawChar(ctx, n.px, n.py, n.dir, frameOf(n), LOOKS[n.look]) }));
   G.lantern = null;
-  if (!G.p.hidden) ds.push({ z: G.p.py + TS + 0.5, f: () => { G.lantern = drawChar(ctx, G.p.px, G.p.py, G.p.dir, frameOf(G.p), heroLook()); } });
-  if (G.monster) ds.push({ z: G.monster.py + TS + 0.6, f: () => drawChar(ctx, G.monster.px, G.monster.py, G.monster.dir, frameOf(G.monster), LOOKS[G.chase ? G.chase.look : 'ghost']) });
+  if (!G.p.hidden) ds.push({ z: G.p.py + TS + 0.5, f: () => {
+    if (G.cine) { ctx.save(); ctx.translate(G.p.px + 16, G.p.py + 26); ctx.rotate(Math.PI / 2 * clamp((G.t - G.cine.t0) / 0.35, 0, 1)); drawChar(ctx, -16, -26, 'down', 0, heroLook()); ctx.restore(); G.lantern = null; return; }
+    G.lantern = drawChar(ctx, G.p.px, G.p.py, G.p.dir, frameOf(G.p), heroLook()); } });
+  if (G.monster) ds.push({ z: G.monster.py + TS + 0.6, f: () => {
+    const m = G.monster, k = m.popT ? (G.t - m.popT) / 0.45 : 1;
+    if (k < 1) { const sc = 1 + 0.45 * Math.sin(Math.PI * k) * (1 - k * 0.4); ctx.save(); ctx.translate(m.px + 16, m.py + 30); ctx.scale(sc, sc); drawChar(ctx, -16, -30, m.dir, 0, LOOKS[G.chase ? G.chase.look : 'ghost']); ctx.restore(); }
+    else drawChar(ctx, m.px, m.py, m.dir, frameOf(m), LOOKS[G.chase ? G.chase.look : 'ghost']); } });
   ds.sort((a, b) => a.z - b.z).forEach(d => d.f());
   over.forEach(drawObj);
+  if (G.balloon && G.t - G.balloon < 0.9 && !G.p.hidden) { const k = G.t - G.balloon, by = G.p.py - 30 - Math.max(0, 6 - k * 40); ctx.fillStyle = '#f4f0e8'; ctx.fillRect(G.p.px + 16, by, 13, 15); ctx.fillRect(G.p.px + 18, by + 15, 4, 3); ctx.fillStyle = '#1a1010'; ctx.fillRect(G.p.px + 16, by, 13, 1); ctx.fillStyle = '#c4141c'; ctx.fillRect(G.p.px + 21, by + 3, 3, 7); ctx.fillRect(G.p.px + 21, by + 11, 3, 2); }
+  (G.fx || []).forEach(f => { if (f.room === G.roomId && f.layer === 'top') drawFx(f); });
   ctx.restore();
   if (G.room.rain) drawRain();
   drawLight(cam, sx, sy);
   if (G.room.overlay) G.room.overlay(ctx, cam);
   if (G.room.tint) { ctx.fillStyle = G.room.tint; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (G.popM) { ctx.save(); ctx.translate(-cam.x + sx, -cam.y + sy);
+  { const pm = G.popM, k = clamp((G.t - pm.t0) / 0.35, 0, 1), sc = 0.4 + 0.9 * k + 0.2 * Math.sin(k * Math.PI); ctx.save(); ctx.translate(pm.x * TS + 16, pm.y * TS + 30); ctx.scale(sc, sc); drawChar(ctx, -16, -30, 'down', 0, LOOKS[pm.look]); ctx.restore(); }
+  ctx.restore(); }
+  { const fx = G.p.px + 16 - cam.x, fy = G.p.py + 8 - cam.y;
+    if (cineInWorld()) { const k = clamp((G.t - G.cine.t0) / G.cine.pre, 0, 1); applyZoom(1 + k * 0.9, fx, fy); ctx.fillStyle = `rgba(150,0,12,${k * 0.45})`; ctx.fillRect(0, 0, cv.width, cv.height); }
+    else if (G.zoomPulse && G.t - G.zoomPulse < 0.6) { const k = 1 - (G.t - G.zoomPulse) / 0.6; applyZoom(1 + 0.18 * k, fx, fy); } }
   const v = ctx.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.4, cv.width / 2, cv.height / 2, cv.width * 0.6);
   v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.5)'); ctx.fillStyle = v; ctx.fillRect(0, 0, cv.width, cv.height);
   if (G.chase && !G.chase.dormant) {
     const a = 0.12 + 0.1 * Math.sin(G.t * 8), g2 = ctx.createRadialGradient(cv.width / 2, cv.height / 2, cv.height * 0.3, cv.width / 2, cv.height / 2, cv.width * 0.6);
     g2.addColorStop(0, 'rgba(120,0,0,0)'); g2.addColorStop(1, `rgba(150,10,20,${a + 0.2})`); ctx.fillStyle = g2; ctx.fillRect(0, 0, cv.width, cv.height);
   }
+  if (G.near > 0) {
+    ctx.fillStyle = `rgba(255,255,255,${0.05 + G.near * 0.1})`;
+    for (let i = 0; i < G.near * 260; i++) ctx.fillRect(Math.random() * cv.width, Math.random() * cv.height, 1, 1);
+    if (G.near > 0.6 && Math.random() < 0.15) { ctx.fillStyle = 'rgba(160,0,20,.12)'; ctx.fillRect(0, Math.random() * cv.height, cv.width, 2 + Math.random() * 6); }
+  }
   if (G.white > 0) { ctx.fillStyle = `rgba(255,240,235,${Math.min(0.8, G.white * 4)})`; ctx.fillRect(0, 0, cv.width, cv.height); }
+  if (G.cine && !cineInWorld()) drawCine();
+}
+function drawFx(f) {
+  const a = 1 - (G.t - f.t0) / f.life, c = ctx;
+  if (f.type === 'foot') { c.fillStyle = `rgba(20,30,40,${0.55 * a})`; f.steps.forEach(([x, y, k], i) => { if ((G.t - f.t0) * 4 < i) return; c.beginPath(); c.ellipse(x + (k ? 5 : -5), y, 3, 5, 0, 0, 7); c.fill(); }); }
+  else if (f.type === 'shadow') { const p = (G.t - f.t0) / f.life, x = f.x0 + (f.x1 - f.x0) * p; c.save(); c.globalAlpha = 0.5 * Math.sin(p * Math.PI); drawChar(c, x, f.y, f.x1 > f.x0 ? 'right' : 'left', Math.floor(p * 12) % 2 + 1, Object.assign({}, LOOKS.ghost, { alpha: 1, jitter: false, shadow: false })); c.restore(); }
+  else if (f.type === 'eyes') { c.fillStyle = `rgba(230,20,30,${a * (Math.sin(G.t * 9) > -0.6 ? 1 : 0)})`; c.fillRect(f.x, f.y, 2, 2); c.fillRect(f.x + 6, f.y, 2, 2); }
+}
+function addFx(f) { f.t0 = G.t; f.room = G.roomId; (G.fx = G.fx || []).push(f); }
+function caption(text, ms = 3200) { const el = $('#caption'); el.textContent = fmt(text); el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); clearTimeout(caption.tm); caption.tm = setTimeout(() => el.classList.remove('on'), ms); }
+function letterbox(on) { document.getElementById('game').classList.toggle('lb', !!on); }
+function lanternLit() { return has('lantern') && G.lanternOn !== false; }
+function toggleLantern() {
+  if (!has('lantern')) return toast('랜턴이 없다.');
+  G.lanternOn = G.lanternOn === false; tone(G.lanternOn ? 660 : 330, 0.08, 'square', 0.04);
+  caption(G.lanternOn ? '랜턴을 켰다.' : '랜턴을 껐다. 어둠 속에서는 그것들도 나를 잘 찾지 못한다.', 2200);
 }
 function lightSources() {
   const out = [];
@@ -905,14 +1080,14 @@ function lightSources() {
 }
 function drawLight(cam, sx, sy) {
   const L = G.room.light ? G.room.light() : { amb: 0.5, r: 120 };
-  let amb = L.amb; if (G.flick > 0) amb = Math.min(0.96, amb + 0.25 * Math.random());
+  let amb = Math.min(0.95, L.amb + 0.09); if (G.flick > 0) amb = Math.min(0.96, amb + 0.25 * Math.random());
   const ox = -cam.x + sx, oy = -cam.y + sy, srcs = lightSources();
   lx.globalCompositeOperation = 'source-over'; lx.clearRect(0, 0, lc.width, lc.height);
   lx.fillStyle = `rgba(6,3,10,${amb})`; lx.fillRect(0, 0, lc.width, lc.height);
   lx.globalCompositeOperation = 'destination-out';
   const cut = (x, y, r, a = 1) => { const g = lx.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(0.55, `rgba(0,0,0,${a * 0.6})`); g.addColorStop(1, 'rgba(0,0,0,0)'); lx.fillStyle = g; lx.fillRect(x - r, y - r, r * 2, r * 2); };
   const lp = G.lantern ? [G.lantern[0], G.lantern[1]] : [G.p.px + 16 + ox + cam.x - sx, G.p.py + oy + cam.y - sy];
-  const lr = (L.r || 120) + Math.sin(G.t * 9) * 2 + Math.sin(G.t * 23) * 1.5;
+  const lr = (lanternLit() ? (L.r || 120) * 0.84 : 30) + Math.sin(G.t * 9) * 2 + Math.sin(G.t * 23) * 1.5;
   cut(lp[0] + (G.lantern ? 0 : 0) - cam.x + sx, lp[1] - cam.y + sy, lr);
   srcs.forEach(s => cut(s[0] + ox, s[1] + oy, s[2], 0.95));
   if (G.monster) cut(G.monster.px + 16 + ox, G.monster.py + oy, 40, 0.55);
@@ -920,8 +1095,8 @@ function drawLight(cam, sx, sy) {
   ctx.drawImage(lc, 0, 0);
   ctx.save(); ctx.globalCompositeOperation = 'lighter';
   const glow = (x, y, r, kind, a) => { const g = ctx.createRadialGradient(x, y, 0, x, y, r); const col = kind === 'cold' ? '120,170,255' : kind === 'red' ? '255,60,50' : '255,168,86'; g.addColorStop(0, `rgba(${col},${a})`); g.addColorStop(1, `rgba(${col},0)`); ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); };
-  srcs.forEach(s => glow(s[0] + ox, s[1] + oy, s[2] * 0.75, s[3], 0.2));
-  glow(lp[0] - cam.x + sx, lp[1] - cam.y + sy, lr * 0.6, 'warm', 0.16);
+  srcs.forEach(s => glow(s[0] + ox, s[1] + oy, s[2] * 0.7, s[3], 0.16));
+  if (lanternLit()) glow(lp[0] - cam.x + sx, lp[1] - cam.y + sy, lr * 0.6, 'warm', 0.16);
   ctx.restore();
 }
 function drawRain() {
@@ -934,7 +1109,7 @@ let lastT = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - lastT) / 1000); lastT = now; G.t += dt;
   if (G.state === 'play' && !(window.ROT_PAUSE && window.ROT_PAUSE.matches)) { update(dt); refreshHud(); }
-  const ovl = !$('#inv').hidden || !$('#mapO').hidden || !$('#pad').hidden || !$('#doc').hidden || !$('#loadO').hidden;
+  const ovl = !$('#inv').hidden || !$('#mapO').hidden || !$('#pad').hidden || !$('#doc').hidden || !$('#loadO').hidden || !$('#peek').hidden;
   document.body.classList.toggle('playing', G.state === 'play' && !ovl);
   render(); requestAnimationFrame(loop);
 }
@@ -1175,7 +1350,7 @@ function drawChar(c, X, Y, dir, frame, L) {
     if (dir === 'down') lx = 24; else if (dir === 'left') lx = 3; else if (dir === 'right') lx = 24; else lx = null;
     if (lx !== null) {
       r0(lx + 1, ly - 3, 3, 1, '#6a5020'); r0(lx + 2, ly - 2, 1, 2, '#6a5020');
-      r0(lx, ly, 5, 8, '#3a2a14'); r0(lx + 1, ly + 1, 3, 6, '#ffd27a'); r0(lx + 2, ly + 2, 1, 4, '#fff2c0'); r0(lx, ly + 8, 5, 1, P.goldD);
+      r0(lx, ly, 5, 8, '#3a2a14'); r0(lx + 1, ly + 1, 3, 6, L.lanternOff ? '#4a3a2a' : '#ffd27a'); r0(lx + 2, ly + 2, 1, 4, L.lanternOff ? '#3a2e24' : '#fff2c0'); r0(lx, ly + 8, 5, 1, P.goldD);
       lantern = [X + lx + 2, Y + ly + 4];
     } else lantern = [X + 16, Y + by + 8];
   }
@@ -1295,6 +1470,23 @@ DRAW.chandelier = (c, X, Y, o) => {
   [-34, -22, -10, 10, 22, 34].forEach((dx, i) => { const yy = cy - 32 + Math.abs(dx) / 34 * -2 + (i % 2 ? 4 : 0); c.fillStyle = '#f2ead8'; c.fillRect(cx + dx - 1, yy - 7, 3, 7); if (lampOn(o)) { c.fillStyle = '#ffd47a'; c.fillRect(cx + dx - 1, yy - 11, 3, 4); } });
   c.restore();
 };
+
+DRAW.hallmirror = (c, X, Y, o) => {
+  const r = R_(c, X, Y);
+  r(3, 2, 26, 54, P.goldD); r(4, 3, 24, 52, P.gold); r(6, 5, 20, 48, P.goldD); r(7, 6, 18, 46, '#2a2630'); r(9, 0, 14, 4, P.gold); r(14, -3, 4, 4, P.goldL);
+  c.save(); c.beginPath(); c.rect(X + 7, Y + 6, 18, 46); c.clip();
+  c.fillStyle = 'rgba(120,110,140,.25)'; c.fillRect(X + 7, Y + 6, 18, 46);
+  const lag = 0.12 + (G.flags.taint || 0) * 0.35, tr = G.trail || [];
+  let s = null; for (let i = tr.length - 1; i >= 0; i--) { if (G.t - tr[i].t >= lag) { s = tr[i]; break; } }
+  if (s && Math.abs(s.px - X) < TS * 4 && s.py < (o.y + 6) * TS) {
+    const off = (s.px - X) * 0.35, flip = { up: 'down', down: 'up', left: 'left', right: 'right' }[s.dir];
+    c.globalAlpha = 0.75; const o2 = document.createElement('canvas'); o2.width = 32; o2.height = 48;
+    drawChar(o2.getContext('2d'), 0, 16, flip, s.f, Object.assign({}, LOOKS[G.hero.gender], { lantern: has('lantern'), shadow: false }));
+    c.drawImage(o2, X + 1 + off, Y + 14, 20, 30);
+  }
+  if (timer('hmSenior')) { c.globalAlpha = 0.6 + 0.1 * Math.sin(G.t * 6); const o3 = document.createElement('canvas'); o3.width = 32; o3.height = 48; drawChar(o3.getContext('2d'), 0, 16, 'down', 0, Object.assign({}, LOOKS.senior, { shadow: false })); c.drawImage(o3, X + 8, Y + 10, 18, 27); }
+  c.restore(); r(9, 8, 3, 30, 'rgba(255,255,255,.08)');
+};
 /* =========================================================
    야간근무 — CONTENT v2  (수칙 10개 · 맵 · 대사 · 문서 · 엔딩)
    ========================================================= */
@@ -1330,7 +1522,7 @@ async function deadPhone(ringKey, book = '방명록') {
   if (timer(ringKey)) {
     const c = await choose('파란 표시등이 꺼진 전화기가 울리고 있다.', ['수화기를 든다', '그냥 자리를 떠난다', `${book}에 「결번(欠番)」이라 적고 3분간 자리를 비운다`]);
     if (c === 0) return die(2, ['수화기를 들었다.', '…수화기 너머에서, 내 목소리가 내 이름을 부른다.'], '파란 표시등이 꺼진 전화기의 수화기를 들지 마십시오.');
-    if (c === 1) return sayAll(['몇 걸음 물러섰지만 벨은 멈추지 않는다.', [N, `(수칙 2번… ${book}에 무언가 적으라고 했는데.)`]]);
+    if (c === 1) { addTaint(); return sayAll(['몇 걸음 물러섰지만 벨은 멈추지 않는다.', [N, `(수칙 2번… ${book}에 무언가 적으라고 했는데.)`]]); }
     G.timers[ringKey] = 0; G.flags[ringKey + 'Over'] = true;
     await say(`${book} 빈 줄에 「결번」이라고 적었다. 벨이 뚝 그쳤다.`);
     await card('3분 뒤.', 1400); await fadeTo(0, 400);
@@ -1434,7 +1626,7 @@ function objective() {
     return '서비스 계단 키패드를 풀자 — 열쇠표 안내 조각';
   }
   if (!has('elevCard')) return '서비스 계단 위 직원 사무실을 조사하자';
-  if (!f.guestDone && !has('key214')) return '2층 복도로 돌아가 보자';
+  if (!f.guestDone && !has('key214')) return '2층 복도로 돌아가 보자 (메모를 모으면 다른 길도 있다)';
   if (!has('key214')) return '승강기로 지하 분실물함에 가자 — 「마지막으로 본 시각」';
   if (!f.lightsDone) return '214호로 가자';
   if (!f.knowName) return '214호를 조사하자';
@@ -1458,14 +1650,20 @@ const MAPLAYOUT = {
 async function tryEscape() {
   if (!G.flags.introDone) return;
   if (!has('roster')) { sfx.deny(); return sayAll(['현관 잠금장치가 내려와 있다. 출입문 옆 표시등도 꺼져 있다.', '옆 단말에 글자가 떠 있다. 「퇴근 확인 — 근무 일지(출근부)를 제시하십시오」']); }
-  const opts = [`빈칸에 내 이름 「${G.hero.name}」을 적는다`];
-  if (G.flags.knowName) opts.push('빈칸에 선임의 이름 「문정희」를 적는다');
-  opts.push('아직은 적지 않는다');
-  const c = await choose('단말: 「퇴근 확인 — 근무 일지의 무기명 칸에 이름을 기입하십시오」', opts);
-  if (c === opts.length - 1) return;
-  G.chase = null; G.monster = null; chaseMusic(false);
-  if (c === 0) { await card('펜촉이 빈칸에 닿았다.', 1600); showEnding('B'); }
-  else { await card('펜촉이 빈칸에 닿았다.', 1600); showEnding('A'); }
+  const opts = [['own', `무기명 칸에 내 이름 「${G.hero.name}」을 적는다`]];
+  if (G.flags.knowName) opts.push(['senior', '무기명 칸에 선임의 이름 「문정희」를 적는다']);
+  opts.push(['wait', '아무것도 적지 않고, 카운터에서 아침을 기다린다'], ['no', '아직은 결정하지 않는다']);
+  const c = await choose('단말: 「퇴근 확인 — 근무 일지의 무기명 칸에 이름을 기입하십시오」', opts.map(o => o[1]));
+  const k = opts[c][0];
+  if (k === 'no') return;
+  G.chase = null; G.monster = null; chaseMusic(false); letterbox(true);
+  if (k === 'own') { await card('펜촉이 빈칸에 닿았다.', 1600); return showEnding('B'); }
+  if (k === 'wait') { await card('펜을 내려놓았다.', 1600); return showEnding('D'); }
+  const t = G.flags.taint || 0;
+  await card('펜촉이 빈칸에 닿았다.', 1600);
+  if (t === 0 && memoCount() >= 6) return showEnding('T');
+  if (t >= 3) return showEnding('A2');
+  return showEnding('A');
 }
 
 /* ---------- 이벤트 상태 (복도 소등) ---------- */
@@ -1509,7 +1707,7 @@ const ROOMS = {
         if (c === 2) return sayAll(['종소리가 저절로 잦아들었다. 아무 일도 일어나지 않았다.', [N, '(…수칙 11번. 4번 조항은 존재하지 않는다고 했지.)']]);
         if (c === 0) await sayAll(['딩—', '…텅 빈 로비 어딘가에서, 누군가 대답하듯 벨을 쳤다. 아주 가까이서.']);
         else await sayAll(['숨을 참고 카운터 아래로 손을 뻗어, 거울 조명 스위치를 내렸다.', '불 꺼진 거울 속에서, 무언가가 이쪽으로 걸어 나왔다.']);
-        toast('수칙 11 — 본 호텔 직원 수칙에 4번 조항은 존재하지 않습니다');
+        toast('수칙 11 — 본 호텔 직원 수칙에 4번 조항은 존재하지 않습니다'); addTaint();
         return startChase({ x: 11, y: 4, time: 20, look: 'ghost', delay: 0.6, onEnd: async () => { await say(N, '(4번은… 없는 조항이었어. 수첩 맨 끝, 다른 필체로 적힌 11번.)'); } });
       }
       if (from === 'staff' && has('elevCard') && !G.flags.r6done && !G.chase) return visitor309();
@@ -1560,6 +1758,7 @@ const ROOMS = {
     reset() { EV5 = null; },
     onEnter: async from => {
       G.flags.visitedCorridor = true;
+      if (G.flags.guestDone && !G.flags.hm1 && !has('key214')) { G.flags.hm1 = true; timer('hmSenior', 25); setTimeout(() => caption('복도 거울 속에서 누군가 손을 흔든 것 같다.'), 600); }
       if (!G.flags.seenPlates) { G.flags.seenPlates = true; G.flags.portraitLook = true; await sayAll(['진홍 러너가 깔린 객실 복도. 문마다 금빛 번호판이 달려 있다.', '201, 204, 207… 지도에도 같은 방이 표시되었다.']); }
       if (G.flags.stairOpen && !G.flags.guestDone && !G.flags.guestSeen) { G.flags.guestSeen = true; await sayAll(['복도 가운데 창가에 손님 한 명이 서 있다.', '…벽등 아래인데도, 발밑에 그림자가 없다.', [N, '(수칙 7번. 먼저 말을 걸지 말 것.)']]); }
       if (has('key214') && !G.flags.lightsDone && !EV5 && !G.chase) {
@@ -1568,12 +1767,13 @@ const ROOMS = {
         EV5 = { f: 0.3, t: 0, delay: 2.4, sp: 2.2, done: false, paused: false, passed: false };
       }
       if (from === 'room214' && G.flags.knowName && !G.flags.finalStarted) {
-        G.flags.finalStarted = true;
+        G.flags.finalStarted = true; letterbox(true);
         await sayAll(['복도 동쪽 끝, 승강기 앞에 누군가 서 있다.', ['선임', '{n} 씨. 종료 확인은… 선임이 직접 한다고 했죠.'], '선임의 눈이 붉게 번들거린다.']);
-        startChase({ x: 28, y: 6, persistent: true, speed: 5.0, followDelay: 1.5, delay: 0.7, look: 'seniorX' });
+        letterbox(false); startChase({ x: 28, y: 6, persistent: true, speed: 5.0, followDelay: 1.5, delay: 0.7, look: 'seniorX' });
       }
     },
     tick(dt) {
+      (G.trail = G.trail || []).push({ t: G.t, px: G.p.px, py: G.p.py, dir: G.p.dir, f: frameOf(G.p) }); while (G.trail.length && G.t - G.trail[0].t > 3) G.trail.shift();
       const g = this.npcs[0];
       if (G.flags.stairOpen && !G.flags.guestDone && !G.flags.guestSpoke && !G.chase && Math.abs(g.x - G.p.x) + Math.abs(g.y - G.p.y) <= 2 && !G.p.moving) { G.flags.guestSpoke = true; run(guestTalk); return; }
       if (!EV5 || EV5.done || EV5.paused) return;
@@ -1642,7 +1842,7 @@ const ROOMS = {
     },
     objs: [
       O('shelf', 1, 3, { w: 2, msg: '비품 선반. 1994년 이후의 서류철이 없다.' }),
-      O('uniform', 3, 1, { h: 2, act: async () => { if (has('elevCard')) return say('걸려 있는 붉은 근무복. 주머니는 비었다.'); await say('벽에 걸린 붉은 근무복. 안주머니에 무언가 딱딱한 게 있다.'); await give('elevCard'); } }),
+      O('uniform', 3, 1, { h: 2, act: async () => { if (has('elevCard')) return say('걸려 있는 붉은 근무복. 주머니는 비었다.'); await say('벽에 걸린 붉은 근무복. 안주머니에 무언가 딱딱한 게 있다.'); await give('elevCard'); if (!G.flags.amb1) { G.flags.amb1 = true; await say('…등 뒤의 옷장 문이, 끼익 하고 혼자 열렸다.'); await ambush({ x: 16, y: 5, look: 'ghost', time: 18, msg: '옷장 안에서 무언가 튀어나왔다!', onEnd: async () => { await say(N, '(승강기 카드는 챙겼어. 지하 분실물함은 승강기로만 갈 수 있다고 했지.)'); } }); } } }),
       O('keyrack', 4, 1, { w: 2, h: 2, empty: true, msg: ['객실 열쇠걸이. 붉은 꼬리표의 「214」 자리만 비어 있다.', '아래 메모: 「214 열쇠 — 손님이 분실물함에 맡김」'] }),
       O('notice', 7, 1, { h: 2, act: () => showDoc('notice') }),
       SCONCE(8, 1),
@@ -1708,7 +1908,7 @@ const ROOMS = {
 
 /* ---------- 스크립트 ---------- */
 async function lobbyIntro() {
-  setPos(11, 7, 'up');
+  setPos(11, 7, 'up'); letterbox(true);
   await sayAll([
     '로비는 이상할 만큼 조용하다. 현관 시계는 23:17에서 멈춰 있다.',
     ['선임', '신입 {n} 씨죠? 늦지 않았네요. 오늘 야간은 나랑 둘이에요.'],
@@ -1732,25 +1932,27 @@ async function lobbyIntro() {
   sfx.door(); G.flags.seniorGone = true; timer('mirrorSenior', 25); await wait(500);
   sfx.off(); G.flick = 0.6;
   await sayAll(['철컥— 현관 잠금장치가 내려가는 소리. 출입문 옆 표시등이 꺼졌다.', [N, '(…잠긴 거야?)'], [N, '(선임이 사라진 서비스 계단 문에는 세 자리 키패드. 주변부터 조사해 보자.)']]);
-  G.flags.introDone = true; checkpoint();
+  G.flags.introDone = true; letterbox(false); checkpoint();
+  caption('[F] 랜턴 끄기 · 켜기', 3500);
 }
 async function visitor309() {
   G.flags.r6done = true;
   const v = ROOMS.lobby.npcs[1]; v.x = 11; v.y = 14; v.px = 11 * TS; v.py = 14 * TS; v.dir = 'up';
-  sfx.door(); G.flags.r6on = true;
+  sfx.door(); G.flags.r6on = true; letterbox(true);
   await say('잠겨 있던 현관이 열리는 소리. 비에 흠뻑 젖은 손님이 로비로 들어왔다.');
   await npcWalk(v, [[11, 13], [11, 12], [11, 11], [11, 10]], 2.2);
   await sayAll([['손님', '309호 예약한 사람인데요. 체크인하려고요.'], ['손님', '키도 여기 있고, 영수증도 있어요. 확인해 보시면 돼요.'], '손님이 내민 열쇠와 영수증에는 젖은 잉크로 「309」. 이 호텔은 2층까지다.']);
-  const c = await choose('손님이 309호 열쇠를 내밀고 있다.', ['예약을 확인해 드린다', '「309호는 없는 방입니다」라고 말한다', '「현재 해당 객실은 리모델링 공사 중입니다」라고 안내한다']);
+  const c = await choose('손님이 309호 열쇠를 내밀고 있다.', ['예약을 확인해 드린다', '「309호는 없는 방입니다」라고 말한다', '「현재 해당 객실은 리모델링 공사 중입니다」라고 안내한다', '309호까지 직접 안내해 드린다']);
+  if (c === 3) { await sayAll([[N, '제가 직접 안내해 드리겠습니다.'], ['손님', '…친절하시네요.']]); await card('손님을 따라 계단을 올랐다.', 1800); return showEnding('C'); }
   if (c === 2) {
     await sayAll([[N, '죄송합니다. 현재 해당 객실은 리모델링 공사 중입니다.'], ['손님', '……그래요?'], '손님은 한참 나를 내려다보다가, 등을 돌렸다.']);
     await npcWalk(v, [[11, 11], [11, 12], [11, 13], [11, 14]], 2.2);
-    sfx.door(); G.flags.r6on = false;
+    sfx.door(); G.flags.r6on = false; letterbox(false);
     return say('현관 잠금장치가 그 손님에게만 열렸다가, 다시 닫혔다. 바닥에 젖은 발자국이 309개쯤 남아 있는 것 같았다.');
   }
   if (c === 0) await sayAll([[N, '네, 확인해 드릴게요. 309호…'], ['손님', '있죠? 있잖아요. 내 방.'], '손님의 입이 귀 밑까지 벌어졌다.']);
   else await sayAll([[N, '저희 호텔에 309호는 없습니다.'], ['손님', '있어요. 방금 거기서 내려왔거든요.'], '손님의 젖은 손이 카운터를 짚었다. 손가락이 하나 더 많았다.']);
-  G.flags.r6on = false;
+  G.flags.r6on = false; addTaint(); letterbox(false);
   startChase({ x: v.x, y: v.y, time: 20, look: 'visitorX', delay: 0.4, onEnd: async () => { await say(N, '(수칙 6번… 예약은 확인해 주지 말고, 공사 중이라고 내보내야 했어.)'); } });
 }
 async function lobbyClock() {
@@ -1814,7 +2016,7 @@ async function guestTalk() {
 async function guestFirst() {
   const c = await choose('그림자가 없는 손님이 창밖을 보고 있다.', ['먼저 말을 건다', '그만둔다']);
   if (c !== 0) return;
-  G.flags.guestDone = true; G.flags.guestSpoke = true;
+  G.flags.guestDone = true; G.flags.guestSpoke = true; addTaint();
   await sayAll([[N, '저기, 손님…'], '손님의 목이 천천히, 뒤로 돌아갔다.']);
   startChase({ x: 15, y: 4, time: 20, look: 'ghost', delay: 0.3, onEnd: async () => { await sayAll([[N, '(수칙 7번을 어겼어… 그래도 214호 열쇠는 찾아야 해.)'], [N, '(분실물함 번호… 「마지막으로 본 시각」이라면, 현관 시계?)']]); } });
 }
@@ -1837,35 +2039,178 @@ async function lostFound() {
   await give('key214');
   G.flick = 0.6;
   await say('…널어 둔 시트 사이로, 젖은 검은 머리카락이 늘어졌다.');
-  startChase({ x: 11, y: 9, time: 22, look: 'ghost', onEnd: async () => { await say(N, '(214호… 2층 복도 끝이었어.)'); } });
+  await ambush({ x: 11, y: 9, time: 22, look: 'ghost', msg: '시트가 펄럭이며 그것이 튀어나왔다!', onEnd: async () => { await say(N, '(214호… 2층 복도 끝이었어.)'); } });
 }
 async function mirror214() {
   if (G.flags.mirror9) return say('타원형 화장 거울. 내 얼굴만 비친다.');
-  G.flags.mirror9 = true; timer('m9', 30);
+  G.flags.mirror9 = true; timer('m9', 30); letterbox(true);
   await sayAll(['타원형 화장 거울. 내 어깨 너머에… 선임이 서 있다.', ['선임', '수고 많았어요, {n} 씨.']]);
   const c = await choose('거울 속 선임이 미소 짓는다. 방 안에는 아무도 보이지 않는다.', ['돌아보며 인사한다', '모른 척한다']);
   G.timers.m9 = 0;
   if (c === 0) {
-    await sayAll([[N, '아, 수고하셨…'], '돌아본 방 안에는 아무도 없었다. 거울 속 선임의 입꼬리만, 귀까지 찢어졌다.']);
+    await sayAll([[N, '아, 수고하셨…'], '돌아본 방 안에는 아무도 없었다. 거울 속 선임의 입꼬리만, 귀까지 찢어졌다.']); addTaint(); letterbox(false);
     return startChase({ x: 9, y: 5, time: 18, look: 'seniorX', delay: 0.4, onEnd: async () => { await say(N, '(수칙 9번… 상대를 확인하기 전엔 인사하지 말 것.)'); } });
   }
-  await say('숨을 고르고 다시 보자, 거울 속 선임은 사라져 있었다.');
+  letterbox(false); await say('숨을 고르고 다시 보자, 거울 속 선임은 사라져 있었다.');
 }
 
 /* ---------- 엔딩 ---------- */
 const ENDINGS = {
-  A: { no: 'ENDING A · 2', title: '퇴근 확인', text: ['근무 일지의 무기명 칸에 「문정희」라고 적었다. 이번에는 잉크가 번지지 않았다.', '등 뒤에서 누군가 길게 숨을 내쉬었다. 「…퇴근 확인, 고마워요.」', '현관 잠금장치가 올라가고, 표시등이 초록색으로 바뀌었다.', '밖은 비가 그쳐 있었다. 돌아보니 현관 시계의 분침이 움직였다. 23:18.', '로비 유리문 너머, 백발의 여자가 처음으로 정문을 나서서, 새벽 쪽으로 걸어갔다.'], hint: '다른 결말이 하나 더 있습니다. 수칙 10번을 어긴다면…?' },
-  B: { no: 'ENDING B · 2', title: '야간 선임', text: ['근무 일지의 빈칸에 내 이름을 적었다. 잉크가 번지며 글자가 종이 속으로 스며들었다.', '현관이 열렸다. 한 걸음 내딛자, 나는 카운터 뒤에 서 있었다.', '머리카락이 희게 바래 있다. 손에는 근무 수첩.', '정문이 열리고, 비에 젖은 신입이 쭈뼛거리며 들어온다.', '「신입 씨죠? 늦지 않았네요. 오늘 야간은 나랑 둘이에요.」'], hint: '214호의 수첩을 끝까지 읽어 보세요.' }
+  T: { no: 'TRUE ENDING', title: '아침', text: ['근무 일지의 무기명 칸에 「문정희」라고 적었다.', '…그리고 수첩 맨 뒤, 신입들이 남긴 메모를 한 장씩 펼쳐, 거기 적힌 이름들도 하나하나 옮겨 적었다.', '그랜드파더 시계가 처음으로 23시 18분을 쳤다. 19분. 20분.', '로비 유리문 너머가 희붐하게 밝아 온다. 비가 그쳤다.', '백발의 선임과, 얼굴을 모르는 신입들이 한 명씩 현관을 나선다. 마지막으로 선임이 돌아보며 목례했다.', '이번엔, 진짜였다.'], hint: '수칙을 하나도 어기지 않고, 신입들의 목소리를 모두 들은 사람만이 아침을 봅니다.' },
+  A: { no: 'ENDING A', title: '퇴근 확인', text: ['근무 일지의 무기명 칸에 「문정희」라고 적었다. 이번에는 잉크가 번지지 않았다.', '등 뒤에서 누군가 길게 숨을 내쉬었다. 「…퇴근 확인, 고마워요.」', '현관 잠금장치가 올라가고, 표시등이 초록색으로 바뀌었다.', '밖은 비가 그쳐 있었다. 돌아보니 현관 시계의 분침이 움직였다. 23:18.', '로비 유리문 너머, 백발의 여자가 처음으로 정문을 나서서, 새벽 쪽으로 걸어갔다.'], hint: '수칙을 하나도 어기지 않고, 흩어진 메모를 더 모은다면…?' },
+  A2: { no: 'ENDING A′', title: '퇴근, 그러나', text: ['무기명 칸에 「문정희」라고 적었다. 현관이 열렸다.', '밖으로 걸어 나왔다. 새벽 공기가 차갑다.', '건너편 쇼윈도에 비친 내가, 한 박자 늦게 걸음을 멈췄다.', '그리고 나보다 먼저, 웃었다.'], hint: '수칙을 어길 때마다 무언가가 조금씩 따라붙습니다.' },
+  B: { no: 'ENDING B', title: '야간 선임', text: ['근무 일지의 빈칸에 내 이름을 적었다. 잉크가 번지며 글자가 종이 속으로 스며들었다.', '현관이 열렸다. 한 걸음 내딛자, 나는 카운터 뒤에 서 있었다.', '머리카락이 희게 바래 있다. 손에는 근무 수첩.', '정문이 열리고, 비에 젖은 신입이 쭈뼛거리며 들어온다.', '「신입 씨죠? 늦지 않았네요. 오늘 야간은 나랑 둘이에요.」'], hint: '214호의 수첩을 끝까지 읽어 보세요.' },
+  C: { no: 'ENDING C', title: '309호', text: ['손님을 따라 계단을 올랐다. 2층을 지나서도 계단은 끝나지 않았다.', '3층. 이 호텔에는 없는 층이다. 복도 끝 309호의 문이 열려 있다.', '안에서 수십 명이 동시에 고개를 돌렸다. 모두 젖어 있었고, 모두 열쇠를 쥐고 있었다.', '「어서 오세요. 오늘부터 여기가 당신 방이에요.」', '등 뒤에서 문이 닫혔다. 열쇠 구멍은 안쪽에만 있었다.'], hint: '수칙 6번 — 리모델링 공사 중입니다.' },
+  D: { no: 'ENDING D', title: '23:17', text: ['아무것도 적지 않았다. 카운터 뒤에 앉아 아침을 기다리기로 했다.', '시계는 23:17. 한참 뒤에도 23:17.', '몇 번의 밤이 지났는지 모른다. 현관이 열리고, 비에 젖은 신입이 들어온다.', '「저기요…?」', '신입은 나를 보지 못한 채 카운터를 지나쳐, 수첩을 집어 들었다.'], hint: '기다리는 것만으로는 아침이 오지 않습니다.' }
 };
+const END_KEY = 'nightshift-endings';
 function showEnding(k) {
   const e = ENDINGS[k];
-  G.state = 'ending'; G.ui = null; dlg.hidden = true; $('#hud').hidden = true; $('#chaseTag').hidden = true;
-  $('#endNo').textContent = e.no; $('#endTitle').textContent = e.title;
+  G.state = 'ending'; G.ui = null; dlg.hidden = true; $('#hud').hidden = true; $('#chaseTag').hidden = true; letterbox(false);
+  let seen = []; try { seen = JSON.parse(localStorage.getItem(END_KEY) || '[]'); } catch (er) { }
+  if (!seen.includes(k)) seen.push(k); try { localStorage.setItem(END_KEY, JSON.stringify(seen)); } catch (er) { }
+  $('#endNo').textContent = `${e.no} · 발견한 엔딩 ${seen.length} / 6`; $('#endTitle').textContent = e.title;
   $('#endText').innerHTML = e.text.map((t, i) => `<p style="animation-delay:${0.4 + i * 0.9}s">${fmt(t)}</p>`).join('');
   $('#endHint').textContent = e.hint; $('#endHint').style.animationDelay = `${0.6 + e.text.length * 0.9}s`;
   $('#end').hidden = false;
 }
 
+/* =========================================================
+   v3 확장: 오염도 · 메모 · 열쇠 구멍 · 복도 거울 · 비밀 서랍 · 이상 현상
+   ========================================================= */
+function addTaint(n = 1) {
+  G.flags.taint = (G.flags.taint || 0) + n;
+  setTimeout(() => caption(['…거울 속의 내가 한 박자 늦게 움직인 것 같다.', '수첩 가장자리가 검게 번져 간다.', '누군가 내 이름을 부르는 소리가 조금 더 가까워졌다.'][Math.min(2, G.flags.taint - 1)], 3200), 400);
+}
+const MEMOS = {
+  1: ['1999 · 신입 정○○', '4번은 함정이야. 맨 끝 조항부터 읽어. 거울 조명은 절대 끄지 마.'],
+  2: ['2003 · 신입 오○○', '309호 손님에게는 공사 중이라고만 해. 안내해 드리면 없던 3층이 생겨.'],
+  3: ['2008 · 신입', '비상등이 꺼지면 문이 있는 벽에 등을 붙이고 아래를 봐. 무슨 숨소리가 들려도 눈을 뜨지 마.'],
+  4: ['2011 · 신입 한○○', '열쇠 보관장 맨 아래 칸에 비밀 서랍이 있어. 번호는 선임이 처음 출근한 날. 4월 3일.'],
+  5: ['2015 · 신입', '랜턴을 끄면 그것들이 나를 잘 못 찾아. 대신 나도 아무것도 못 봐. 숨는 걸 들키면 끝이야.'],
+  6: ['2019 · 신입 윤○○', '선임 이름을 알아냈어. 그런데 그 이름을 적으면… 나는? 나는 누가 적어 주지?'],
+  7: ['2022 · 신입', '거울 속 내가 늦게 따라와. 규칙을 어길 때마다 더 늦어져. 지금은 세 박자쯤.'],
+  8: ['오늘 · ???', '{n}. 이 메모를 읽는 사람이 나라면, 이번엔 꼭 아무것도 어기지 마. 그리고 이 메모들의 이름도 같이 적어 줘.']
+};
+const MEMO_SPOT = { 1: '트렁크 사이에', 2: '소파 쿠션 틈에', 3: '짐 카트 손잡이에', 4: '화분 받침 아래에', 5: '서류철 사이에', 6: '우산 손잡이에', 7: '세탁물 카트 시트 밑에', 8: '베개 밑에' };
+const memoCount = () => Object.keys(MEMOS).filter(n => G.flags['memo' + n]).length;
+ITEMS.memos = { name: '신입들의 메모', icon: 'doc', desc: () => `이전 신입들이 호텔 곳곳에 남긴 메모. (${memoCount()} / 8)`, doc: 'memos' };
+DOCS.memos = { head: '수첩 맨 뒤에 끼워 둔 것', title: '신입들의 메모', sub: () => '', body: () => Object.entries(MEMOS).map(([n, m]) => G.flags['memo' + n] ? `<p class="hand"><b>${m[0]}</b><br>${m[1]}</p>` : `<p class="hand" style="opacity:.35">— 아직 찾지 못한 메모 —</p>`).join('') };
+DOCS._one = { title: '', body: '' };
+async function showMemo(n) { DOCS._one = { head: '신입의 메모', title: MEMOS[n][0], body: `<p class="hand big">${MEMOS[n][1]}</p>` }; await showDoc('_one'); }
+function attachMemo(rid, x, y, n) {
+  const o = ROOMS[rid].objs.find(o => o.x === x && o.y === y); if (!o) throw new Error('memo spot ' + rid + x + y);
+  const orig = o.act, msg = o.msg; o.memo = n;
+  o.act = async ob => {
+    if (!G.flags['memo' + n]) {
+      G.flags['memo' + n] = true; if (!has('memos')) G.inv.push('memos'); sfx.item();
+      await say(`${MEMO_SPOT[n]} 접힌 메모가 끼어 있다. (신입들의 메모 ${memoCount()} / 8)`); return showMemo(n);
+    }
+    if (orig) return orig(ob);
+    return sayAll(typeof msg === 'function' ? msg() : msg);
+  };
+}
+attachMemo('lobby', 6, 11, 1); attachMemo('lobby', 18, 13, 2); attachMemo('corridor2', 22, 8, 3); attachMemo('corridor2', 28, 8, 4);
+attachMemo('staff', 1, 3, 5); attachMemo('staff', 16, 6, 6); attachMemo('b1', 9, 9, 7); attachMemo('room214', 1, 3, 8);
+
+/* 수첩 설명에 오염도 반영 */
+ITEMS.notebook.desc = () => '선임에게 받은 근무 수첩. 맨 앞장에 「직원 수칙 10가지」. …세어 보면 열한 개다.' + ((G.flags.taint || 0) ? ` 가장자리가 검게 번져 있다. (${'■'.repeat(Math.min(5, G.flags.taint))})` : '');
+
+/* 비밀 서랍: 214호 마스터키 두 번째 경로 */
+(() => {
+  const kc = ROOMS.lobby.objs.find(o => o.type === 'keycab');
+  kc.act = async () => {
+    if (G.flags.secretOpen) return say('열쇠 보관장. 맨 아래 비밀 서랍은 비어 있다.');
+    await say('열쇠 보관장. 201 · 204 · 207의 열쇠표 자리만 비어 있다. 맨 아래 칸에 작은 네 자리 번호 서랍이 달려 있다.');
+    const c = await keypad('보관장 비밀 서랍', 4, '네 자리'); if (c === null) return;
+    if (c !== '0403') { sfx.deny(); return say('덜컥. 열리지 않는다.'); }
+    checkpoint(); G.flags.secretOpen = true; sfx.unlock();
+    if (has('key214')) return say('서랍 안에는 빛바랜 사원증 한 장뿐이다. 「1994 입사 · 문○○」');
+    await say('서랍 안쪽 깊숙이, 붉은 꼬리표의 마스터키가 있다.'); await give('key214');
+    await say('…서랍 안쪽, 어둠 속에서 무언가 손가락을 감아쥐었다.');
+    await ambush({ x: 14, y: 4, look: 'visitorX', time: 16, msg: '카운터 아래에서 무언가가 기어 나왔다!' });
+  };
+})();
+
+/* 열쇠 구멍 엿보기 */
+function showPeek(n) {
+  return new Promise(res => {
+    const el = $('#peek'), cn = $('#peekC'), c = cn.getContext('2d'), t0 = G.t, P = PEEKS[n]; el.hidden = false; $('#peekT').textContent = '';
+    let alive = true;
+    const frame = () => {
+      if (!alive) return; const t = G.t - t0;
+      c.clearRect(0, 0, 200, 200); c.save(); c.beginPath(); c.arc(100, 82, 62, 0, 7); c.moveTo(78, 120); c.lineTo(122, 120); c.lineTo(112, 190); c.lineTo(88, 190); c.closePath(); c.clip();
+      c.imageSmoothingEnabled = false; P.draw(c, t); c.restore();
+      const v = c.createRadialGradient(100, 90, 30, 100, 90, 110); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,.9)'); c.fillStyle = v; c.fillRect(0, 0, 200, 200);
+      if (t > 0.9 && !$('#peekT').textContent) { $('#peekT').textContent = fmt(P.text); if (P.scare) { sfx.stinger(); G.shake = 0.3; } }
+      requestAnimationFrame(frame);
+    };
+    frame();
+    const close = () => { alive = false; el.hidden = true; G.ui = null; res(); };
+    $('#peek').onclick = close;
+    G.ui = { key(code) { if (isConfirm(code) || code === 'Escape') close(); } };
+  });
+}
+const peekRoom = (c, floor) => { c.fillStyle = floor; c.fillRect(0, 0, 200, 200); c.fillStyle = '#4a3a3e'; c.fillRect(0, 0, 200, 70); for (let x = 0; x < 200; x += 16) { c.fillStyle = 'rgba(0,0,0,.15)'; c.fillRect(x, 0, 1, 70); } };
+const bigChar = (c, x, y, dir, look, sc = 3) => { const o = document.createElement('canvas'); o.width = 32; o.height = 48; drawChar(o.getContext('2d'), 0, 16, dir, 0, Object.assign({}, LOOKS[look], { jitter: false })); c.drawImage(o, x, y, 32 * sc, 48 * sc); };
+const PEEKS = {
+  201: { text: '침대 끝에 누군가 등을 돌리고 앉아 있다. 머리카락이 바닥까지 늘어져 있다. …움직이지 않는다.', draw: (c, t) => { peekRoom(c, '#3a2a22'); c.fillStyle = '#d8d2c6'; c.fillRect(20, 96, 160, 60); c.fillStyle = '#6a1c28'; c.fillRect(20, 120, 160, 36); bigChar(c, 52, 34 + Math.sin(t * 2) * 1, 'up', 'ghost', 3); } },
+  204: { scare: true, text: '…반대편에서도, 누군가 이쪽을 들여다보고 있었다.', draw: (c, t) => { c.fillStyle = '#e8e2d8'; c.fillRect(0, 0, 200, 200); const k = Math.min(1, t * 2); c.fillStyle = '#7a1a1a'; c.beginPath(); c.arc(100 + Math.sin(t * 13) * 2, 84, 34 * k, 0, 7); c.fill(); c.fillStyle = '#000'; c.beginPath(); c.arc(100 + Math.sin(t * 13) * 2, 84, 16 * k, 0, 7); c.fill(); c.fillStyle = 'rgba(160,0,0,.4)'; for (let i = 0; i < 9; i++) c.fillRect(30 + i * 16, 20 + (i % 3) * 8, 1, 60); } },
+  207: { text: '천장까지 빼곡히 걸린 붉은 근무복. 그중 한 벌에만 목이 달려 있다.', draw: (c, t) => { peekRoom(c, '#2a2020'); for (let i = 0; i < 7; i++) { const sw = Math.sin(t * 1.5 + i) * 3; c.fillStyle = '#5a5a60'; c.fillRect(10 + i * 27 + sw, 20, 2, 16); c.fillStyle = '#6a1a24'; c.fillRect(0 + i * 27 + sw, 36, 24, 80); c.fillStyle = '#4a1018'; c.fillRect(11 + i * 27 + sw, 36, 2, 80); if (i === 3) { c.fillStyle = '#e8e2da'; c.fillRect(4 + i * 27 + sw, 18, 16, 18); c.fillStyle = '#000'; c.fillRect(7 + i * 27 + sw, 24, 3, 4); c.fillRect(14 + i * 27 + sw, 24, 3, 4); } } } },
+  211: { scare: true, text: '어둠뿐이다. …아니, 웃음소리가 열쇠 구멍 바로 앞에서 멈췄다.', draw: (c, t) => { c.fillStyle = '#050304'; c.fillRect(0, 0, 200, 200); if (t > 0.6) { c.fillStyle = '#e01828'; c.fillRect(82, 80, 8, 8); c.fillRect(110, 80, 8, 8); c.fillStyle = '#d8d2cc'; c.fillRect(84, 100, 32, 3); } } }
+};
+(() => {
+  const C = ROOMS.corridor2.objs;
+  [[2, 201], [6, 204], [10, 207], [19, 211]].forEach(([x, n]) => {
+    const o = C.find(o => o.type === 'door' && o.x === x); const msg = o.msg;
+    o.act = async () => {
+      await sayAll(typeof msg === 'function' ? msg() : msg);
+      if (G.flags['peek' + n]) return say('열쇠 구멍은 다시 들여다보고 싶지 않다.');
+      const c = await choose('문 손잡이 아래에 오래된 열쇠 구멍이 있다.', ['열쇠 구멍으로 들여다본다', '그만둔다']);
+      if (c !== 0) return;
+      G.flags['peek' + n] = true; await showPeek(n);
+      if (n === 211) { await say('쾅! 211호 문이 안쪽에서 부서질 듯 흔들렸다.'); await ambush({ x: 19, y: 5, push: [19, 7, 'up'], look: 'ghost', time: 18, msg: '211호 문이 벌컥 열리며 그것이 뛰쳐나왔다!' }); }
+    };
+  });
+  // 복도 거울 (수칙 9)
+  const m = C.find(o => o.type === 'painting' && o.x === 22); m.type = 'hallmirror'; delete m.msg;
+  m.act = async () => {
+    if (timer('hmSenior')) {
+      letterbox(true);
+      await sayAll(['복도 거울 속, 내 뒤쪽에 선임이 서서 손을 흔들고 있다.', ['선임', '{n} 씨, 수고 많아요.']]);
+      const c = await choose('거울 속 선임이 목례를 기다린다.', ['거울 속 선임에게 목례한다', '실제 복도를 돌아보고 먼저 확인한다']);
+      G.timers.hmSenior = 0; letterbox(false);
+      if (c === 0) { await say('고개를 숙이는 순간, 거울 속 선임의 고개가 거꾸로 꺾였다.'); addTaint(); return startChase({ x: 21, y: 6, time: 18, look: 'seniorX', delay: 0.4, onEnd: async () => { await say(N, '(수칙 9번… 실제로 보이지 않으면 인사하지 말 것.)'); } }); }
+      return sayAll(['돌아본 복도에는 아무도 없다.', '다시 거울을 보자, 선임은 사라지고 없었다. (수칙 9번)']);
+    }
+    if ((G.flags.taint || 0) >= 2) return say('거울 속의 내가… 내가 눈을 깜빡인 뒤에야 눈을 깜빡였다.');
+    return say('금테 복도 거울. 랜턴 불빛이 일렁인다. 거울 속 복도가 실제보다 조금 더 길어 보인다.');
+  };
+})();
+
+/* 무작위 이상 현상 */
+function anomaly() {
+  if (G.busy || G.state !== 'play' || G.roomId === 'street') return;
+  const R = G.room, p = G.p, list = ['steps', 'knock', 'foot', 'whisper', 'flicker', 'eyes'];
+  if (G.roomId === 'corridor2' || G.roomId === 'lobby') list.push('shadow', 'shadow');
+  if (G.roomId === 'corridor2' && G.flags.stairOpen) list.push('mirror', 'mirror');
+  const k = list[Math.floor(Math.random() * list.length)];
+  if (k === 'steps') { for (let i = 0; i < 6; i++) setTimeout(() => noise(0.06, 0.05, 500), i * 380); caption('머리 위에서, 누군가 천천히 걸어간다.'); }
+  else if (k === 'knock') { for (let i = 0; i < 3; i++) setTimeout(() => { tone(140, 0.08, 'triangle', 0.15); noise(0.05, 0.08, 300); }, i * 420); caption('어딘가에서 똑, 똑, 똑.'); }
+  else if (k === 'foot') {
+    const dir = Math.random() < 0.5 ? 1 : -1, steps = [];
+    for (let i = 0; i < 8; i++) { const x = p.px + 16 + dir * (6 - i) * 20, y = p.py + 26 + (i % 2) * 6; if (isFloor(tileAt(Math.floor(x / TS), Math.floor(y / TS)))) steps.push([x, y, i % 2]); }
+    addFx({ type: 'foot', steps, life: 9 }); caption('바닥에 젖은 발자국이 하나씩, 이쪽으로 찍혀 온다.');
+  }
+  else if (k === 'whisper') { noise(1.2, 0.05, 1800, 0, 6); caption('…{n}.', 2000); }
+  else if (k === 'flicker') { G.flick = 1; caption('전등이 한꺼번에 깜빡였다. 그 사이, 뭔가가 보였던 것 같다.'); }
+  else if (k === 'eyes') {
+    for (let tries = 0; tries < 30; tries++) { const x = 1 + Math.floor(Math.random() * (R.w - 2)), y = 3 + Math.floor(Math.random() * (R.h - 4)); if (!blocked(x, y) && Math.abs(x - p.x) + Math.abs(y - p.y) > 5) { addFx({ type: 'eyes', x: x * TS + 12, y: y * TS + 4, life: 4, layer: 'top' }); break; } }
+    caption('어둠 한쪽 구석에서, 붉은 점 두 개가 깜빡였다.');
+  }
+  else if (k === 'shadow') { const l2r = Math.random() < 0.5, y = clamp(p.py - TS * 2, 3 * TS, (R.h - 3) * TS); addFx({ type: 'shadow', x0: l2r ? -TS : R.w * TS, x1: l2r ? R.w * TS : -TS, y, life: 2.4, layer: 'top' }); noise(1.2, 0.04, 260); caption('무언가가 빠르게 지나갔다.', 2200); }
+  else if (k === 'mirror') { timer('hmSenior', 14); caption('복도 거울 쪽에서, 누군가 손을 흔드는 것 같다.'); }
+}
 /* ---------- 부팅 ---------- */
 function startNew(g) {
   auInit(); if (isTouch) goFull(true, true);
@@ -1882,7 +2227,7 @@ function startNew(g) {
 }
 function toTitle() {
   G.state = 'title'; G.ui = null; G.chase = null; G.monster = null; chaseMusic(false);
-  ['#over', '#end', '#inv', '#mapO', '#pad', '#doc', '#loadO'].forEach(s => { $(s).hidden = true; }); dlg.hidden = true;
+  ['#over', '#end', '#inv', '#mapO', '#pad', '#doc', '#loadO', '#peek'].forEach(s => { $(s).hidden = true; }); dlg.hidden = true;
   $('#hud').hidden = true; $('#title').hidden = false; $('#tGender').hidden = true; $('#tMain').hidden = false;
   $('#btnLoad').hidden = !loadSave(); $('#btnNew').focus();
 }
@@ -1892,6 +2237,7 @@ $('#btnOverLoad').onclick = () => { $('#over').hidden = true; G.state = 'title';
 const inGameLoad = () => { if (G.state === 'play' && !G.busy && !G.ui) run(openLoad); };
 $('#loadChip').onclick = () => { if (G.state === 'play') inGameLoad(); else if (G.state === 'title') openLoad(); };
 $('#padLoad').onclick = inGameLoad;
+$('#padLamp').onclick = () => { if (G.state === 'play') toggleLantern(); };
 document.querySelectorAll('.g-card').forEach(b => {
   const cn = b.querySelector('canvas'), c = cn.getContext('2d');
   drawChar(c, 0, 16, 'down', 0, Object.assign({}, LOOKS[b.dataset.g], { shadow: false }));
