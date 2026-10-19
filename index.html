@@ -116,6 +116,8 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
 .paper p { margin: .5em 0; word-break: keep-all; }
 .rules { margin: 0; padding-left: 1.6em; display: grid; gap: .45em; }
 .rules li { padding-left: .2em; word-break: keep-all; }
+.rules li.scrawl { font-family: 'Gowun Batang', serif; color: #6a1a1a; font-style: italic; transform: rotate(-1deg); border-top: 1px dashed rgba(106,26,26,.4); padding-top: .4em; }
+.rules li.scrawl::marker { color: #6a1a1a; }
 .rules.red li::marker { color: var(--blood); font-weight: 700; }
 .rules b { color: #6a1a1a; }
 .sign { text-align: right; font-size: .85em; color: #5a4a38; }
@@ -321,7 +323,7 @@ button:focus-visible, .game:focus-visible { outline: 2px solid var(--brass); out
     <div id="title" class="screen title"><div class="t-inner">
       <div class="t-eyebrow">NIGHT SHIFT</div>
       <h1 class="t-logo"><span>夜間勤務</span></h1>
-      <p class="t-sub">규칙은 이해하려고 하지 말고, 그대로 지키십시오.</p>
+      <p class="t-sub">직원 수칙 10가지를 반드시 지키십시오.</p>
       <div id="tMain" class="t-btns">
         <button class="keytag" id="btnNew" type="button">새로 출근하기</button>
         <button class="keytag ghost" id="btnLoad" type="button" hidden>불러오기</button>
@@ -1063,6 +1065,8 @@ const LOOKS = {
   senior: { skin: '#e8cdb8', hair: '#b9b4ae', hairL: '#dedad4', style: 'bun', outfit: 'suit', suit: '#1e1d26', shirt: '#e8e6e0', eyes: 'old' },
   guest: { skin: '#e2cdbf', hair: '#c4bfb8', hairL: '#e2ded8', style: 'boy', outfit: 'coat', coat: '#5a2630', eyes: 'old', shadow: false },
   ghost: { skin: '#e8e6e0', hair: '#0c0a0c', hairL: '#1e1a1e', style: 'long', outfit: 'ghost', dress: '#d8d6d0', eyes: 'hollow', alpha: 0.9, jitter: true },
+  visitor: { skin: '#d8d2cc', hair: '#141218', hairL: '#2a2630', style: 'boy', outfit: 'coat', coat: '#2a3446', eyes: 'normal' },
+  visitorX: { skin: '#cfc8c2', hair: '#141218', hairL: '#2a2630', style: 'boy', outfit: 'coat', coat: '#2a3446', eyes: 'hollow', tall: 3, jitter: true },
   seniorX: { skin: '#d8ccc4', hair: '#b9b4ae', hairL: '#dedad4', style: 'bun', outfit: 'suit', suit: '#1a1018', shirt: '#c8b8b0', eyes: 'red', tall: 4, jitter: true }
 };
 function drawChar(c, X, Y, dir, frame, L) {
@@ -1322,11 +1326,15 @@ async function savePhone() {
   if (c !== 0) return;
   const ok = saveGame(); sfx.save(); await say(ok ? '수화기 너머에서 짧은 신호음. 근무 기록이 저장되었다. (타이틀이나 「불러오기」에서 이어 할 수 있다)' : '신호음이 끊긴다. 이 브라우저에서는 기록을 남길 수 없는 것 같다. (이번 플레이 중에는 이 지점부터 다시 시작된다)');
 }
-async function deadPhone(ringKey) {
+async function deadPhone(ringKey, book = '방명록') {
   if (timer(ringKey)) {
-    const c = await choose('표시등이 꺼진 전화기가 울리고 있다.', ['수화기를 든다', '자리를 비운다']);
+    const c = await choose('파란 표시등이 꺼진 전화기가 울리고 있다.', ['수화기를 든다', '그냥 자리를 떠난다', `${book}에 「결번(欠番)」이라 적고 3분간 자리를 비운다`]);
     if (c === 0) return die(2, ['수화기를 들었다.', '…수화기 너머에서, 내 목소리가 내 이름을 부른다.'], '파란 표시등이 꺼진 전화기의 수화기를 들지 마십시오.');
-    return;
+    if (c === 1) return sayAll(['몇 걸음 물러섰지만 벨은 멈추지 않는다.', [N, `(수칙 2번… ${book}에 무언가 적으라고 했는데.)`]]);
+    G.timers[ringKey] = 0; G.flags[ringKey + 'Over'] = true;
+    await say(`${book} 빈 줄에 「결번」이라고 적었다. 벨이 뚝 그쳤다.`);
+    await card('3분 뒤.', 1400); await fadeTo(0, 400);
+    return say(`돌아와 보니 전화기는 조용했다. 「결번」 글자 옆에, 누군가 동그라미를 쳐 두었다.`);
   }
   await say('파란 표시등이 꺼져 있다. 수칙 2번… 저장용 전화기가 아니다.');
 }
@@ -1334,11 +1342,12 @@ async function elevator(cur) {
   if (!has('elevCard')) { sfx.deny(); return say('승강기. 호출 버튼 옆에 카드 리더기가 달려 있다. 승강기 카드가 필요하다.'); }
   if (!G.flags.zeroDone) {
     G.flags.zeroDone = true; timer('elev0', 9999); sfx.off();
-    await say('카드를 대자 표시창 숫자가 내려간다. 1… 0.');
-    const c = await choose('표시창에 「0」이 떠 있다.', ['층 버튼을 누른다', '표시가 돌아올 때까지 문 앞에서 기다린다']);
-    if (c === 0) { G.flags.zeroDone = false; G.timers.elev0 = 0; return die(8, ['버튼을 누르자 문이 열렸다.', '그 안에는 바닥이 없었다.'], '승강기 표시창에 0이 나타나면 층 버튼을 누르지 마십시오.'); }
-    await wait(1800); G.timers.elev0 = 0; sfx.elev();
-    await say('…표시가 원래 층으로 돌아왔다. 문이 열린다.');
+    await sayAll(['카드를 대자 표시창 숫자가 내려간다. 1… 0.', '띵— 「0」이 깜빡이는 채로, 승강기 문이 열렸다. 안쪽은 불이 꺼져 있다.']);
+    const c = await choose('표시창에 숫자 대신 「0」이 깜빡인다.', ['층 버튼을 누른다', '열린 승강기에 탄다', '카운터 방향으로 천천히 뒷걸음질 친다']);
+    if (c < 2) { G.flags.zeroDone = false; G.timers.elev0 = 0; return die(8, c === 0 ? ['버튼을 누르자 문이 닫혔다. 승강기는 아래로, 아래로, 0층보다 더 아래로 내려갔다.'] : ['한 발을 들여놓았다.', '그 안에는 바닥이 없었다.'], '「0」이 깜빡이면 어떤 버튼도 누르지 말고, 문이 열려도 타지 마십시오.'); }
+    await say('한 걸음, 두 걸음. 등을 보이지 않고 뒤로 물러섰다.');
+    await wait(1400); G.timers.elev0 = 0; sfx.elev();
+    await say('…문이 닫히고, 표시창이 원래 층 숫자로 돌아왔다. 다시 문이 열린다. 안에는 불이 켜져 있다.');
   }
   const fl = [['1F', '1층 · 로비'], ['2F', '2층 · 객실 복도'], ['B1', '지하 · 세탁실']];
   const opts = fl.map(f => f[1] + (f[0] === cur ? ' (현재 층)' : '')).concat(['그만둔다']);
@@ -1352,7 +1361,7 @@ const elevDisp = f => () => timer('elev0') ? '0' : f;
 
 /* ---------- 아이템 ---------- */
 const ITEMS = {
-  notebook: { name: '근무 수첩', icon: 'book', desc: '선임에게 받은 근무 수첩. 맨 앞장에 「절대 지켜야 할 호텔 규칙」 10가지.', doc: 'rules' },
+  notebook: { name: '근무 수첩', icon: 'book', desc: '선임에게 받은 근무 수첩. 맨 앞장에 「직원 수칙 10가지」. …세어 보면 열한 개다.', doc: 'rules' },
   map: { name: '접이식 호텔 지도', icon: 'map', desc: '직접 가 본 곳만 선이 또렷해지는 이상한 지도. [M] 키로 펼친다.' },
   lantern: { name: '랜턴', icon: 'lantern', desc: '선임이 건넨 황동 랜턴. 불꽃이 바람도 없이 흔들린다.' },
   spareKey: { name: '납작한 예비 열쇠', icon: 'skey', desc: '로비 호출 종 아래에 끼어 있던 작은 열쇠. 카운터 서랍에 맞을 것 같다.' },
@@ -1360,28 +1369,29 @@ const ITEMS = {
   taghint: { name: '열쇠표 안내 조각', icon: 'tag', desc: '장부에 붙어 있던 종이 조각.', doc: 'taghint' },
   serviceKey: { name: '서비스 계단 열쇠', icon: 'key', desc: '키패드를 풀자 나온 황동 열쇠. 직원 구역 출입용.' },
   elevCard: { name: '승강기 카드', icon: 'card', desc: '직원 근무복 주머니에 들어 있던 카드. 승강기 리더기용.' },
-  roster: { name: '근무 명부', icon: 'book', desc: '야간 근무자의 이름이 적힌 명부. 마지막 한 줄이 비어 있다.', doc: 'roster' },
-  key214: { name: '214호 열쇠', icon: 'rkey', desc: '분실물함에 맡겨져 있던 열쇠. 붉은 꼬리표에 「214 · 직원 숙직실」.' },
-  diary: { name: '낡은 근무 일지', icon: 'redoc', desc: '214호 책상 위 일지. 표지에 「야간 근무 — 문정희」.', doc: 'diary' },
+  roster: { name: '근무 일지 (출근부)', icon: 'book', desc: '야간 근무자의 이름이 적힌 근무 일지. 마지막 한 줄이 「무기명」으로 비어 있다.', doc: 'roster' },
+  key214: { name: '214호 마스터키', icon: 'rkey', desc: '분실물함에 맡겨져 있던 마스터키. 붉은 꼬리표에 「214 · 직원 숙직실」.' },
+  diary: { name: '문정희의 수첩', icon: 'redoc', desc: '214호 책상 위에 있던 낡은 수첩. 표지에 「야간 근무 — 문정희」.', doc: 'diary' },
   oldtag: { name: '오래된 명찰', icon: 'name', desc: '「야간 근무 · 문정희」 금빛이 바랜 명찰.' }
 };
 
 /* ---------- 문서 ---------- */
 const DOCS = {
   rules: {
-    title: '절대 지켜야 할 호텔 규칙', sub: '근무 수첩 첫 장 · 야간 근무자 열람용',
+    head: '白夜 HOTEL · 야간 근무 수첩', title: '직원 수칙 10가지', sub: '[개정판] 선임 호텔리어가 전하는 절대 규칙',
     body: `<ol class="rules">
-<li>로비 시계를 직접 맞추지 마십시오. 시계가 23:17을 가리켜도 시침과 분침을 돌리지 마십시오. 시계가 잠시 뒤로 움직이면 종이 한 번 울릴 때까지 기다리십시오.</li>
-<li>파란 표시등이 꺼진 전화기의 수화기를 들지 마십시오. 불이 안정적으로 켜진 전화기는 업무 저장용입니다. 불이 꺼진 채 울리면 수화기를 들지 말고 자리를 비우십시오.</li>
-<li>214호 손잡이가 따뜻하면 문을 열지 마십시오. 객실 카드에 '공실'이라고 적혀 있어도 예외는 없습니다.</li>
-<li>아무도 없는 로비에서 종이 한 번 울려도 답례 종을 치지 마십시오. 종소리가 끝나면 정상 업무로 돌아가면 됩니다.</li>
-<li>복도 조명이 한 칸씩 꺼지면 가장 가까운 밝은 구역으로 걸어가십시오. 뛰거나 뒤를 돌아보지 마십시오.</li>
-<li>열쇠표는 객실 번호순으로 정리하지 마십시오. 퇴실 시각이 빠른 손님의 열쇠부터 반납하십시오. 키패드 입력은 각 열쇠표의 마지막 숫자를 사용합니다.</li>
-<li>그림자가 없는 손님에게 먼저 말을 걸지 마십시오. 그 손님이 먼저 말을 걸어도 이름을 묻지 마십시오.</li>
-<li>승강기 표시창에 0이 나타나면 층 버튼을 누르지 마십시오. 표시가 원래 층으로 돌아올 때까지 문 앞에서 기다리십시오.</li>
-<li>거울에 선임이 비치더라도 실제 복도에서 선임이 보이지 않으면 인사하지 마십시오. 인사는 상대를 확인한 뒤에만 하십시오.</li>
-<li>근무 명부의 빈칸에 자기 이름을 적지 마십시오. 퇴근 확인은 선임이 직접 처리합니다.</li>
-</ol><p class="hand">"규칙은 이해하려고 하지 말고, 그대로 지켜. 이유를 묻는 손님도 기록하지 마."</p>`
+<li><b>로비의 그랜드파더 시계에는 절대 손대지 마십시오.</b> 시침이 23시 17분에 멈춰 있더라도 태엽을 감거나 바늘을 돌려서는 안 됩니다. 시계가 거꾸로 돌기 시작하면 즉시 카운터 밑으로 몸을 숨기고, 종이 세 번 울릴 때까지 숨을 죽이십시오.</li>
+<li><b>파란 표시등이 꺼진 카운터 전화기의 수화기는 들지 마십시오.</b> 불이 안정적으로 켜진 전화기만 정상적인 예약 문의입니다. 불이 꺼진 채 벨이 울리면 전화를 무시하고, 방명록에 '결번(欠番)'이라고 적은 뒤 3분간 자리를 비우십시오.</li>
+<li><b>214호 마스터키를 쥐었을 때 손잡이가 체온처럼 따뜻하다면, 오늘 밤 그 방은 '공실'이 아닙니다.</b> 예약 시스템에 빈방으로 떠 있더라도 마스터키를 꽂거나 문을 열지 마십시오. 그 안에는 이미 '체크인을 마친 무언가'가 있습니다.</li>
+<li><b>아무도 없는 로비에서 프런트 벨이 한 번 울리면, 절대 답례 벨을 치지 마십시오.</b> 그것은 손님의 호출이 아닙니다. 종소리가 완전히 잦아들 때까지 숨을 참고, 카운터 아래의 거울 조명을 끄십시오.</li>
+<li><b>복도 천장의 비상등이 입구 쪽부터 한 칸씩 꺼지기 시작하면, 즉시 가장 가까운 객실 벽면에 등을 붙이고 서십시오.</b> 복도 끝을 향해 뛰거나, 뒤에서 들리는 발소리에 고개를 돌려서는 안 됩니다. 어둠이 지나갈 때까지 눈을 감고 계십시오.</li>
+<li><b>자신이 309호 손님이라며 입실을 요구하는 사람이 찾아오면, 절대 예약을 확인해 주지 마십시오.</b> "현재 해당 객실은 리모델링 공사 중입니다"라고 안내하고 즉시 호텔 밖으로 내보내십시오. 그들이 쥔 열쇠와 영수증이 진짜처럼 보여도, 그 방에 사는 것은 사람이 아닙니다.</li>
+<li><b>로비 바닥에 그림자가 드리워지지 않는 손님에게는 절대 먼저 말을 걸지 마십시오.</b> 그 손님이 먼저 말을 걸어와도 이름과 객실 번호를 묻지 마십시오. "예약 확인 중입니다"라고만 낮게 답하고, 시선은 손님의 목 아래에 고정하십시오.</li>
+<li><b>승강기 층수 표시창에 숫자 대신 '0'이 깜빡이면, 어떤 층 버튼도 누르지 마십시오.</b> 문이 열려도 절대 타지 말고, 표시창이 정상적인 층 숫자로 돌아올 때까지 카운터 쪽으로 뒷걸음질 치십시오.</li>
+<li><b>복도 거울에 선임의 모습이 비치더라도, 실제 복도에서 선임이 보이지 않는다면 절대 인사하지 마십시오.</b> 거울 속에서 인사하는 것은 선임이 아닙니다. 복도에 실제로 사람이 서 있는 것을 두 눈으로 확인한 뒤에만 목례를 허용합니다.</li>
+<li><b>근무 일지의 남은 빈칸에 절대 본인의 이름을 직접 적지 마십시오.</b> 오늘 야간 근무의 종료 확인은 당신이 하는 것이 아닙니다. 아침이 되어 선임이 직접 네임스탬프를 찍을 때까지, 당신의 출근부는 '무기명'으로 두어야 합니다.</li>
+<li class="scrawl">본 호텔 직원 수칙에 4번 조항은 존재하지 않습니다. 매뉴얼에 '4.'로 적힌 조항이 있다면 전부 무시하십시오.</li>
+</ol>`
   },
   ledger: {
     title: '퇴실 장부', sub: '탄소 복사지 · 오늘 밤 퇴실 기록 (객실 번호순 정리)',
@@ -1391,24 +1401,24 @@ const DOCS = {
 <tr><td>207호</td><td>23:17</td><td>207</td><td>반납 대기 · 시각 옆에 잉크 얼룩</td></tr></table>
 <p class="hand">※ 오늘 퇴실한 손님은 세 명뿐. 그런데 체크인 기록은 한 줄도 없다.</p>`
   },
-  taghint: { head: '열쇠표 안내', title: '장부에 붙은 조각', body: `<p class="hand big">키패드에는 각 열쇠표 번호의 <b>마지막 숫자만</b> 입력할 것.</p><p class="hand">반납 순서는 수첩을 따를 것.</p>` },
+  taghint: { head: '열쇠표 안내', title: '장부에 붙은 조각', body: `<p class="hand big">열쇠표는 객실 번호순이 아니라, <b>퇴실 시각이 빠른 손님의 열쇠부터</b> 반납할 것.</p><p class="hand big">키패드에는 각 열쇠표 번호의 <b>마지막 숫자만</b> 입력할 것.</p>` },
   roster: {
-    title: '야간 근무 명부', sub: '1987 — ',
+    title: '야간 근무 일지 · 출근부', sub: '1987 — ',
     body: () => `<table class="ledger"><tr><th>연도</th><th>성명</th><th>퇴근 확인</th></tr>
 <tr><td>1987</td><td><s>김○○</s></td><td>확인</td></tr><tr><td>1989</td><td><s>오○○</s></td><td>확인</td></tr>
 <tr><td>1991</td><td><s>정○○</s></td><td>확인</td></tr><tr><td>1994</td><td>${G.flags.knowName ? '문정희' : '<span class="black">██ ███</span>'}</td><td>—</td></tr>
 <tr><td></td><td class="blot">&nbsp;</td><td></td></tr></table>
-<p class="hand">마지막 줄의 빈칸에 잉크가 번져 있다. 보고 있는 동안에도 조금씩 번지지만, 글자는 나타나지 않는다.</p>`
+<p class="hand">마지막 줄은 「무기명」. 빈칸에 잉크가 번져 있다. 보고 있는 동안에도 조금씩 번지지만, 글자는 나타나지 않는다.</p>`
   },
   notice: { head: '직원 사무실 게시', title: '승강기 운행 안내', body: `<p>승강기 카드는 근무복 안주머니에 보관할 것.</p><p>지하 세탁실은 승강기로만 출입한다.</p><p class="hand">표시창이 이상하면 — 수첩 8번.</p>` },
   diary: {
-    head: '214호 · 직원 숙직실', title: '근무 일지 — 문정희',
+    head: '214호 · 직원 숙직실', title: '문정희의 수첩',
     body: `<p class="hand">1994. 4. 3 — 첫 야간 근무. 선임이 수첩을 건네고 호출을 받아 사라졌다.</p>
 <p class="hand">(날짜 없음) — 아침이 오지 않는다. 현관 시계는 계속 23:17.</p>
-<p class="hand">(날짜 없음) — 근무 명부 빈칸에 내 이름을 적었다. 퇴근 확인인 줄 알았다.</p>
+<p class="hand">(날짜 없음) — 근무 일지 빈칸에 내 이름을 적었다. 퇴근 확인인 줄 알았다.</p>
 <p class="hand">그 뒤로 나는 선임이 되었다. 밤마다 신입에게 수첩을 건넨다. 머리가 하얗게 셀 때까지.</p>
-<p class="hand">퇴근 확인은 선임이 직접 처리한다. 그런데 선임의 퇴근은 누가 확인해 주지?</p>
-<p class="hand big">누군가 명부의 빈칸에 <b>내 이름</b>을 적어 준다면. <b>문정희</b>. 이 이름을 기억해 줘.</p>`
+<p class="hand">아침이 되면 선임이 네임스탬프를 찍어 준다고 했다. 그런데 이곳엔 아침이 오지 않는다. 선임의 퇴근은 누가 확인해 주지?</p>
+<p class="hand big">누군가 근무 일지의 빈칸에 <b>내 이름</b>을 적어 준다면. <b>문정희</b>. 이 이름을 기억해 줘.</p>`
   }
 };
 
@@ -1421,14 +1431,14 @@ function objective() {
     if (!has('spareKey')) return '로비를 조사하자 — 카운터 · 종 · 전화기 · 시계';
     if (!has('ledger')) return '예비 열쇠로 카운터 서랍을 열자';
     if (!f.seenPlates) return '2층 복도의 객실 번호판을 확인하자';
-    return '서비스 계단 키패드를 풀자 — 수첩 6번';
+    return '서비스 계단 키패드를 풀자 — 열쇠표 안내 조각';
   }
   if (!has('elevCard')) return '서비스 계단 위 직원 사무실을 조사하자';
   if (!f.guestDone && !has('key214')) return '2층 복도로 돌아가 보자';
   if (!has('key214')) return '승강기로 지하 분실물함에 가자 — 「마지막으로 본 시각」';
   if (!f.lightsDone) return '214호로 가자';
   if (!f.knowName) return '214호를 조사하자';
-  if (!has('roster')) return '직원 사무실의 근무 명부를 챙겨 현관으로';
+  if (!has('roster')) return '직원 사무실의 근무 일지를 챙겨 현관으로';
   return '현관 단말에서 퇴근 확인을 하자';
 }
 
@@ -1447,11 +1457,11 @@ const MAPLAYOUT = {
 /* ---------- 탈출 ---------- */
 async function tryEscape() {
   if (!G.flags.introDone) return;
-  if (!has('roster')) { sfx.deny(); return sayAll(['현관 잠금장치가 내려와 있다. 출입문 옆 표시등도 꺼져 있다.', '옆 단말에 글자가 떠 있다. 「퇴근 확인 — 근무 명부를 제시하십시오」']); }
+  if (!has('roster')) { sfx.deny(); return sayAll(['현관 잠금장치가 내려와 있다. 출입문 옆 표시등도 꺼져 있다.', '옆 단말에 글자가 떠 있다. 「퇴근 확인 — 근무 일지(출근부)를 제시하십시오」']); }
   const opts = [`빈칸에 내 이름 「${G.hero.name}」을 적는다`];
   if (G.flags.knowName) opts.push('빈칸에 선임의 이름 「문정희」를 적는다');
   opts.push('아직은 적지 않는다');
-  const c = await choose('단말: 「퇴근 확인 — 명부의 빈칸에 이름을 기입하십시오」', opts);
+  const c = await choose('단말: 「퇴근 확인 — 근무 일지의 무기명 칸에 이름을 기입하십시오」', opts);
   if (c === opts.length - 1) return;
   G.chase = null; G.monster = null; chaseMusic(false);
   if (c === 0) { await card('펜촉이 빈칸에 닿았다.', 1600); showEnding('B'); }
@@ -1461,7 +1471,7 @@ async function tryEscape() {
 /* ---------- 이벤트 상태 (복도 소등) ---------- */
 let EV5 = null;
 const inAlcove = x => x >= 13 && x <= 16;
-function sconceLit(o) { return () => !EV5 || (o.x + 0.5 >= EV5.dl && o.x + 0.5 <= EV5.dr) || EV5.done; }
+function sconceLit(o) { return () => !EV5 || EV5.done || o.x + 0.5 > EV5.f; }
 
 /* ---------- 방 정의 ---------- */
 const ROOMS = {
@@ -1481,8 +1491,8 @@ const ROOMS = {
     name: '로비', theme: 'lobby', map: room(24, 16),
     light: () => G.flags.seniorGone ? { amb: 0.62, r: has('lantern') ? 120 : 70 } : { amb: 0.34, r: 120 },
     rugs: [[10, 6, 4, 9, { step: 96 }], [1, 8, 5, 2], [18, 8, 5, 2]],
-    npcs: [{ id: 'senior', x: 11, y: 4, dir: 'down', look: 'senior', show: () => !G.flags.seniorGone }],
-    reset() { const n = this.npcs[0]; n.x = 11; n.y = 4; n.moving = false; },
+    npcs: [{ id: 'senior', x: 11, y: 4, dir: 'down', look: 'senior', show: () => !G.flags.seniorGone }, { id: 'visitor', x: 11, y: 14, dir: 'up', look: 'visitor', show: () => G.flags.r6on }],
+    reset() { const n = this.npcs[0]; n.x = 11; n.y = 4; n.moving = false; const v = this.npcs[1]; v.x = 11; v.y = 14; v.px = 11 * TS; v.py = 14 * TS; v.moving = false; },
     always(dt) {
       if (timer('ring1')) { G.ringT = (G.ringT || 0) - dt; if (G.ringT <= 0) { G.ringT = 2.2; if (G.roomId === 'lobby') sfx.ring(); } }
       else if (G.timers.ring1 && !G.flags.ring1Over) { G.flags.ring1Over = true; if (G.roomId === 'lobby' && !G.busy && G.state === 'play') run(() => say('벨소리가 스스로 멎었다. 아무 일도 일어나지 않았다.')); }
@@ -1492,9 +1502,17 @@ const ROOMS = {
       if (G.flags.visitedCorridor) G.flags.portraitLook = false;
       if (!G.flags.introDone) return lobbyIntro();
       if (from === 'corridor2' && !G.flags.bellEvent && !G.flags.stairOpen) {
-        G.flags.bellEvent = true; timer('bell', 7); sfx.bell();
-        await sayAll(['딩—', '아무도 없는 카운터에서, 호출 종이 한 번 울렸다.', [N, '(수칙 4번… 답례 종은 치지 말 것.)']]);
+        G.flags.bellEvent = true; timer('bell', 30); sfx.bell();
+        await sayAll(['딩—', '아무도 없는 카운터에서, 프런트 벨이 한 번 울렸다.']);
+        const c = await choose('벨 소리가 로비에 길게 남는다.', ['답례 벨을 친다', '숨을 참고, 카운터 아래 거울 조명을 끈다 (수칙 4번)', '아무것도 하지 않고 업무로 돌아간다']);
+        G.timers.bell = 0;
+        if (c === 2) return sayAll(['종소리가 저절로 잦아들었다. 아무 일도 일어나지 않았다.', [N, '(…수칙 11번. 4번 조항은 존재하지 않는다고 했지.)']]);
+        if (c === 0) await sayAll(['딩—', '…텅 빈 로비 어딘가에서, 누군가 대답하듯 벨을 쳤다. 아주 가까이서.']);
+        else await sayAll(['숨을 참고 카운터 아래로 손을 뻗어, 거울 조명 스위치를 내렸다.', '불 꺼진 거울 속에서, 무언가가 이쪽으로 걸어 나왔다.']);
+        toast('수칙 11 — 본 호텔 직원 수칙에 4번 조항은 존재하지 않습니다');
+        return startChase({ x: 11, y: 4, time: 20, look: 'ghost', delay: 0.6, onEnd: async () => { await say(N, '(4번은… 없는 조항이었어. 수첩 맨 끝, 다른 필체로 적힌 11번.)'); } });
       }
+      if (from === 'staff' && has('elevCard') && !G.flags.r6done && !G.chase) return visitor309();
     },
     objs: [
       O('window', 2, 1, { w: 2, h: 2, msg: '창밖은 비에 젖은 어둠뿐이다.' }),
@@ -1545,40 +1563,50 @@ const ROOMS = {
       if (!G.flags.seenPlates) { G.flags.seenPlates = true; G.flags.portraitLook = true; await sayAll(['진홍 러너가 깔린 객실 복도. 문마다 금빛 번호판이 달려 있다.', '201, 204, 207… 지도에도 같은 방이 표시되었다.']); }
       if (G.flags.stairOpen && !G.flags.guestDone && !G.flags.guestSeen) { G.flags.guestSeen = true; await sayAll(['복도 가운데 창가에 손님 한 명이 서 있다.', '…벽등 아래인데도, 발밑에 그림자가 없다.', [N, '(수칙 7번. 먼저 말을 걸지 말 것.)']]); }
       if (has('key214') && !G.flags.lightsDone && !EV5 && !G.chase) {
-        await sayAll(['복도 동쪽 끝에서 탁, 하고 벽등 하나가 꺼졌다.', '서쪽 끝에서도. 조명이 한 칸씩, 가운데를 향해 꺼져 들어온다.', [N, '(수칙 5번. 가장 가까운 밝은 곳으로… 걸어서. 뒤돌아보지 말고.)']]);
-        EV5 = { dl: 0.5, dr: 29.5, t: 0, delay: 1.6, sp: 1.15, done: false, hold: 0 };
+        await sayAll(['복도 서쪽 입구에서 탁, 하고 비상등 하나가 꺼졌다.', '탁. 탁. 천장의 불이 입구 쪽부터 한 칸씩 이쪽으로 꺼져 온다.', [N, '(수칙 5번. 가장 가까운 객실 벽면에 등을 붙이고 서야 해. 뛰지 말고.)']]);
+        toast('객실 문이 있는 위쪽 벽 바로 앞에서, 아래(↓)를 보고 멈춰 서기');
+        EV5 = { f: 0.3, t: 0, delay: 2.4, sp: 2.2, done: false, paused: false, passed: false };
       }
       if (from === 'room214' && G.flags.knowName && !G.flags.finalStarted) {
         G.flags.finalStarted = true;
-        await sayAll(['복도 동쪽 끝, 승강기 앞에 누군가 서 있다.', ['선임', '{n} 씨. 퇴근 확인은… 선임이 직접 처리한다고 했죠.'], '선임의 눈이 붉게 번들거린다.']);
+        await sayAll(['복도 동쪽 끝, 승강기 앞에 누군가 서 있다.', ['선임', '{n} 씨. 종료 확인은… 선임이 직접 한다고 했죠.'], '선임의 눈이 붉게 번들거린다.']);
         startChase({ x: 28, y: 6, persistent: true, speed: 5.0, followDelay: 1.5, delay: 0.7, look: 'seniorX' });
       }
     },
     tick(dt) {
       const g = this.npcs[0];
       if (G.flags.stairOpen && !G.flags.guestDone && !G.flags.guestSpoke && !G.chase && Math.abs(g.x - G.p.x) + Math.abs(g.y - G.p.y) <= 2 && !G.p.moving) { G.flags.guestSpoke = true; run(guestTalk); return; }
-      if (!EV5 || EV5.done) return;
+      if (!EV5 || EV5.done || EV5.paused) return;
       EV5.t += dt;
-      if (EV5.t > EV5.delay) { EV5.dl = Math.min(13, EV5.dl + EV5.sp * dt); EV5.dr = Math.max(17, EV5.dr - EV5.sp * dt); }
+      if (EV5.t < EV5.delay) return;
+      if (G.p.run && G.p.moving) { EV5 = null; return run(() => die(5, ['발소리가 복도에 울렸다. 어둠이 그 소리를 향해 몰려왔다.'], '복도 끝을 향해 뛰지 마십시오.')); }
+      EV5.f += EV5.sp * dt;
       const px = G.p.px / TS + 0.5;
-      if (EV5.t > EV5.delay) {
-        if (G.p.run && G.p.moving) { EV5 = null; return run(() => die(5, ['발소리가 복도에 울렸다. 어둠이 그 소리를 향해 몰려왔다.'], '뛰지 마십시오.')); }
-        if ((px < EV5.dl || px > EV5.dr) && !inAlcove(G.p.x)) { EV5 = null; return run(() => die(5, ['어둠이 발끝부터 삼켜 올라왔다.'], '가장 가까운 밝은 구역으로 걸어가십시오.')); }
-        const back = G.p.x < 13 ? 'left' : G.p.x > 16 ? 'right' : null;
-        if (back && G.p.dir === back && EV5.t > EV5.delay + 0.3) { EV5 = null; return run(() => die(5, ['뒤를 돌아보고 말았다.', '꺼진 벽등 아래, 무언가가 바로 뒤에 서 있었다.'], '뒤를 돌아보지 마십시오.')); }
+      if (!EV5.passed && EV5.f >= px - 0.3) {
+        const ok = G.p.y === 5 && !inAlcove(G.p.x) && G.p.dir === 'down' && !G.p.moving;
+        if (!ok) { EV5 = null; return run(() => die(5, ['어둠이 발끝부터 삼켜 올라왔다.', '벽에 등을 붙이지 못한 채였다.'], '가장 가까운 객실 벽면에 등을 붙이고 서십시오.')); }
+        EV5.passed = true; EV5.paused = true;
+        return run(async () => {
+          sfx.heart();
+          await sayAll(['등을 객실 벽에 붙이고, 눈을 감았다.', '어둠이 눈꺼풀 너머로 천천히 지나간다.', '…바로 옆에서, 발소리가 멈췄다.']);
+          const c = await choose('누군가 귀 옆에서 숨을 쉰다.', ['눈을 감은 채 버틴다', '고개를 돌려 확인한다']);
+          if (c === 1) { EV5 = null; return die(5, ['고개를 돌리고 눈을 떴다.', '코앞에, 얼굴이 없는 무언가가 있었다.'], '뒤에서 들리는 발소리에 고개를 돌리지 마십시오. 어둠이 지나갈 때까지 눈을 감고 계십시오.'); }
+          await say('발소리가 복도 끝으로 멀어진다. 아직 눈을 뜨지 않았다.');
+          if (EV5) EV5.paused = false;
+        });
       }
-      if (EV5.dl >= 13 && EV5.dr <= 17 && inAlcove(G.p.x)) {
-        EV5.hold += dt;
-        if (EV5.hold > 1.6) { EV5.done = true; G.flags.lightsDone = true; run(async () => { sfx.chime(); await sayAll(['창가의 빛만 남은 채 정적이 흘렀다.', '…탁. 탁. 조명이 하나씩 다시 켜진다.', '214호 쪽에서, 쇠붙이가 식어 가는 소리가 들렸다.']); EV5 = null; }); }
+      if (EV5.passed && G.p.moving) { EV5 = null; return run(() => die(5, ['어둠이 다 지나가기 전에 벽에서 등을 떼고 말았다.'], '어둠이 지나갈 때까지 벽에 붙어 계십시오.')); }
+      if (EV5.f > 30.5) {
+        EV5.done = true; G.flags.lightsDone = true;
+        run(async () => { sfx.chime(); await sayAll(['…탁. 탁. 비상등이 입구 쪽부터 다시 켜진다. 눈을 떴다.', '214호 쪽에서, 쇠붙이가 식어 가는 소리가 들렸다.']); EV5 = null; });
       }
     },
     overlay(c, cam) {
       if (!EV5 || EV5.done) return;
-      const L = EV5.dl * TS - cam.x, Rr = EV5.dr * TS - cam.x;
-      c.fillStyle = 'rgba(2,1,4,.95)';
-      if (L > 0) { c.fillRect(0, 0, L, cv.height); const g = c.createLinearGradient(L, 0, L + 40, 0); g.addColorStop(0, 'rgba(2,1,4,.95)'); g.addColorStop(1, 'rgba(2,1,4,0)'); c.fillStyle = g; c.fillRect(L, 0, 40, cv.height); }
-      c.fillStyle = 'rgba(2,1,4,.95)';
-      if (Rr < cv.width) { c.fillRect(Rr, 0, cv.width - Rr, cv.height); const g = c.createLinearGradient(Rr - 40, 0, Rr, 0); g.addColorStop(0, 'rgba(2,1,4,0)'); g.addColorStop(1, 'rgba(2,1,4,.95)'); c.fillStyle = g; c.fillRect(Rr - 40, 0, 40, cv.height); }
+      const L = EV5.f * TS - cam.x;
+      if (L <= 0) return;
+      c.fillStyle = 'rgba(2,1,4,.95)'; c.fillRect(0, 0, Math.min(L, cv.width), cv.height);
+      const g = c.createLinearGradient(L, 0, L + 48, 0); g.addColorStop(0, 'rgba(2,1,4,.95)'); g.addColorStop(1, 'rgba(2,1,4,0)'); c.fillStyle = g; c.fillRect(L, 0, 48, cv.height);
     },
     objs: [
       O('painting', 1, 3, { h: 2, kind: 'flower', msg: '꽃 정물화.' }),
@@ -1609,7 +1637,7 @@ const ROOMS = {
     rugs: [[4, 7, 10, 3, { c: '#5e1a24', step: 80 }]],
     always(dt) { if (timer('ring2')) { G.ringT2 = (G.ringT2 || 0) - dt; if (G.ringT2 <= 0) { G.ringT2 = 2.2; if (G.roomId === 'staff') sfx.ring(); } } },
     onEnter: async () => {
-      if (G.flags.seenStaff) return; G.flags.seenStaff = true; timer('ring2', 8);
+      if (G.flags.seenStaff) return; G.flags.seenStaff = true; timer('ring2', 16);
       await sayAll(['서비스 계단 위의 직원 사무실. 녹색 갓 등이 책상을 비춘다.', '책상 위 붉은 전화기가 울리기 시작했다. 표시등은 꺼져 있다.']);
     },
     objs: [
@@ -1626,7 +1654,7 @@ const ROOMS = {
       O('desk', 4, 5, { w: 3, paper: () => true, msg: '업무 메모가 흩어진 책상. 모든 메모의 날짜가 4월 3일이다.' }),
       O('desk', 8, 5, { w: 2, book: () => !has('roster'), act: rosterAct }),
       O('desk', 11, 5, { w: 2, msg: '교환용 책상.' }),
-      O('phone', 12, 5, { top: true, red: true, state: () => timer('ring2') ? 'ring' : 'off', act: () => deadPhone('ring2') }),
+      O('phone', 12, 5, { top: true, red: true, state: () => timer('ring2') ? 'ring' : 'off', act: () => deadPhone('ring2', '근무 메모') }),
       O('phonetable', 16, 8, { state: () => 'blue', act: savePhone }),
       O('wardrobe', 16, 4, hide('옷장 안, 붉은 근무복들 사이에 숨었다.')),
       O('umbrella', 16, 6, { msg: '우산꽂이. 모두 젖어 있다.' }),
@@ -1670,9 +1698,9 @@ const ROOMS = {
       O('wardrobe', 10, 4, hide('낡은 옷장 안. 똑같은 검은 정장이 서른 벌 걸려 있다.')),
       O('desk', 6, 6, { w: 2, book: () => !has('diary'), act: async () => {
         if (has('diary')) return say('빈 책상. 펜 자국만 남아 있다.');
-        await say('책상 위에 낡은 근무 일지가 펼쳐져 있다.'); await give('diary'); await showDoc('diary');
+        await say('책상 위에 낡은 수첩이 펼쳐져 있다.'); await give('diary'); await showDoc('diary');
         G.flags.knowName = true;
-        await sayAll([[N, '선임의 이름이… 문정희.'], [N, '퇴근 확인은 선임이 직접 처리한다. 그럼, 선임의 퇴근은 내가 확인해 주면 돼.'], [N, '(근무 명부를 챙겨 현관 단말로 가자.)']]);
+        await sayAll([[N, '선임의 이름이… 문정희.'], [N, '종료 확인은 선임이 한다. 그럼, 선임의 퇴근은… 내가 확인해 주면 돼.'], [N, '(근무 일지를 챙겨 현관 단말로 가자.)']]);
       } })
     ]
   }
@@ -1694,11 +1722,10 @@ async function lobbyIntro() {
   await say('선임', '규칙은 열 가지예요. 지금 같이 읽죠.');
   await showDoc('rules');
   await sayAll([
-    [N, '저… 3번의 214호는 왜 그런 거예요? 7번의 그림자 없는 손님은 또…'],
+    [N, '저… 10가지라고 하셨는데 11번까지 있어요. 11번만 글씨체도 다르고…'],
     ['선임', '수첩에 있는 그대로 따르면 됩니다.'],
     '삐— 카운터 아래에서 호출음이 울린다.',
-    ['선임', '…호출이네. 서비스 복도에 잠깐 다녀올게요. 로비 지키고 있어요.'],
-    ['선임', '규칙은 이해하려고 하지 말고, 그대로 지켜요. 이유를 묻는 손님도 기록하지 말고.']
+    ['선임', '…호출이네. 서비스 복도에 잠깐 다녀올게요. 로비 지키고 있어요.']
   ]);
   const s = ROOMS.lobby.npcs[0];
   await npcWalk(s, [[12, 4], [13, 4], [14, 4], [15, 4], [16, 4], [17, 4], [17, 3]], 3.2);
@@ -1707,27 +1734,41 @@ async function lobbyIntro() {
   await sayAll(['철컥— 현관 잠금장치가 내려가는 소리. 출입문 옆 표시등이 꺼졌다.', [N, '(…잠긴 거야?)'], [N, '(선임이 사라진 서비스 계단 문에는 세 자리 키패드. 주변부터 조사해 보자.)']]);
   G.flags.introDone = true; checkpoint();
 }
+async function visitor309() {
+  G.flags.r6done = true;
+  const v = ROOMS.lobby.npcs[1]; v.x = 11; v.y = 14; v.px = 11 * TS; v.py = 14 * TS; v.dir = 'up';
+  sfx.door(); G.flags.r6on = true;
+  await say('잠겨 있던 현관이 열리는 소리. 비에 흠뻑 젖은 손님이 로비로 들어왔다.');
+  await npcWalk(v, [[11, 13], [11, 12], [11, 11], [11, 10]], 2.2);
+  await sayAll([['손님', '309호 예약한 사람인데요. 체크인하려고요.'], ['손님', '키도 여기 있고, 영수증도 있어요. 확인해 보시면 돼요.'], '손님이 내민 열쇠와 영수증에는 젖은 잉크로 「309」. 이 호텔은 2층까지다.']);
+  const c = await choose('손님이 309호 열쇠를 내밀고 있다.', ['예약을 확인해 드린다', '「309호는 없는 방입니다」라고 말한다', '「현재 해당 객실은 리모델링 공사 중입니다」라고 안내한다']);
+  if (c === 2) {
+    await sayAll([[N, '죄송합니다. 현재 해당 객실은 리모델링 공사 중입니다.'], ['손님', '……그래요?'], '손님은 한참 나를 내려다보다가, 등을 돌렸다.']);
+    await npcWalk(v, [[11, 11], [11, 12], [11, 13], [11, 14]], 2.2);
+    sfx.door(); G.flags.r6on = false;
+    return say('현관 잠금장치가 그 손님에게만 열렸다가, 다시 닫혔다. 바닥에 젖은 발자국이 309개쯤 남아 있는 것 같았다.');
+  }
+  if (c === 0) await sayAll([[N, '네, 확인해 드릴게요. 309호…'], ['손님', '있죠? 있잖아요. 내 방.'], '손님의 입이 귀 밑까지 벌어졌다.']);
+  else await sayAll([[N, '저희 호텔에 309호는 없습니다.'], ['손님', '있어요. 방금 거기서 내려왔거든요.'], '손님의 젖은 손이 카운터를 짚었다. 손가락이 하나 더 많았다.']);
+  G.flags.r6on = false;
+  startChase({ x: v.x, y: v.y, time: 20, look: 'visitorX', delay: 0.4, onEnd: async () => { await say(N, '(수칙 6번… 예약은 확인해 주지 말고, 공사 중이라고 내보내야 했어.)'); } });
+}
 async function lobbyClock() {
-  if (timer('clockBack')) return sayAll(['시계가 23:16으로 물러나 있다.', [N, '(수칙 1번. 종이 한 번 울릴 때까지 기다리자.)']]);
-  if (!G.flags.clockLook) { G.flags.clockLook = true; await sayAll(['현관 시계. 23:17에서 멈춰 있다.', '…초침이 한 칸 뒤로 갔다가, 다시 제자리로 돌아왔다.']); }
-  const c = await choose('멈춘 시곗바늘이 23:17을 가리키고 있다.', ['시침과 분침을 맞춘다', '그대로 둔다']);
-  if (c === 0) return die(1, ['분침에 손가락을 걸었다.', '로비의 모든 소리가 멎었다. 23:17. 23:17. 23:17.'], '로비 시계를 직접 맞추지 마십시오.');
+  if (timer('clockBack')) return say('시계가 거꾸로 돌고 있다. 다가가면 안 된다.');
+  if (!G.flags.clockLook) { G.flags.clockLook = true; await sayAll(['그랜드파더 시계. 23:17에서 멈춰 있다.', '…초침이 한 칸 뒤로 갔다가, 다시 제자리로 돌아왔다.']); }
+  const c = await choose('멈춘 시곗바늘이 23:17을 가리키고 있다.', ['태엽을 감고 바늘을 맞춘다', '손대지 않는다']);
+  if (c === 0) return die(1, ['분침에 손가락을 걸었다.', '로비의 모든 소리가 멎었다. 23:17. 23:17. 23:17.'], '로비의 그랜드파더 시계에는 절대 손대지 마십시오.');
 }
 async function lobbyBell() {
-  if (timer('bell')) {
-    const c = await choose('호출 종이 아직 미세하게 떨리고 있다.', ['답례로 종을 친다', '손을 거둔다']);
-    if (c === 0) return die(4, ['딩—', '텅 빈 로비 어딘가에서, 누군가 대답하듯 종을 쳤다. 아주 가까이서.'], '아무도 없는 로비에서 종이 울려도 답례 종을 치지 마십시오.');
-    return;
-  }
-  if (!has('spareKey')) { await say('은색 호출 종. 받침 아래에 납작한 무언가가 끼어 있다.'); await give('spareKey'); return say('(종을 울리지 않고도 빼낼 수 있었다.)'); }
-  await say('호출 종. 울리지 않는 편이 좋겠다.');
+  if (!has('spareKey')) { await say('은색 프런트 벨. 받침 아래에 납작한 무언가가 끼어 있다.'); await give('spareKey'); return say('(벨을 울리지 않고도 빼낼 수 있었다.)'); }
+  await say('프런트 벨. 울리지 않는 편이 좋겠다.');
 }
 async function lobbyDrawer() {
   if (has('ledger')) return say('카운터 서랍. 비어 있다.');
   if (!has('spareKey')) return say('카운터의 얕은 서랍. 잠겨 있다. 작은 열쇠 구멍이 있다.');
   sfx.unlock(); await say('예비 열쇠로 서랍이 열렸다. 탄소 복사지가 붙은 장부와 종이 조각이 들어 있다.');
   await give('ledger'); await give('taghint'); await showDoc('ledger'); await showDoc('taghint');
-  timer('ring1', 8); G.ringT = 0;
+  timer('ring1', 16); G.ringT = 0;
   await say('…그때, 카운터 위 전화기가 울리기 시작했다. 파란 표시등은 꺼져 있다.');
 }
 async function serviceDoor(o) {
@@ -1739,25 +1780,34 @@ async function serviceDoor(o) {
   sfx.keyOk(); G.flags.stairOpen = true;
   await sayAll(['세 숫자가 차례로 낮게 울린다.', '단말: 「퇴실 기록이 확인되었습니다」 철컥, 계단 문이 열렸다.']);
   await give('serviceKey');
-  timer('clockBack', 5); timer('plates', 14); G.flags.chimeDone = false; G.flick = 0.4;
-  await sayAll(['현관 시계의 분침이 한 칸 뒤로 물러났다. 23:16.', '카운터 위 전화기 표시등이 파랗게 켜졌다. (파란 불의 전화기에서 근무 기록을 저장할 수 있다)']);
+  timer('plates', 14); G.flags.chimeDone = true; G.flick = 0.4;
+  timer('clockBack', 9999); sfx.off();
+  await sayAll(['…째깍. 째깍. 등 뒤에서 시계 소리가 거꾸로 들린다.', '그랜드파더 시계의 바늘이 역방향으로 헛돌기 시작했다. 23:16. 23:15. 23:14…']);
+  const cb = await choose('시계가 거꾸로 돌고 있다.', ['즉시 카운터 밑으로 숨어 숨을 죽인다', '시계로 다가가 바늘을 붙잡는다', '그 자리에서 지켜본다']);
+  if (cb === 1) { G.timers.clockBack = 0; return die(1, ['바늘에 손가락이 닿는 순간, 시계가 멈췄다.', '내 심장도.'], '그랜드파더 시계에는 절대 손대지 마십시오.'); }
+  if (cb === 2) { G.timers.clockBack = 0; return die(1, ['바늘이 22시대로 내려간다. 21시. 20시.', '로비에 서 있는 내가 점점 흐려진다. 출근하기 전으로, 그보다 더 전으로.'], '시계가 거꾸로 돌면 즉시 카운터 밑으로 숨으십시오.'); }
+  setPos(11, 4, 'down');
+  await say('카운터 밑으로 미끄러져 들어가 무릎을 끌어안았다. 숨을 참는다.');
+  for (const t of ['뎅— (하나)', '뎅— (둘)', '뎅— (셋)']) { sfx.chime(); await say(t); }
+  G.timers.clockBack = 0;
+  await sayAll(['…시계 소리가 멎었다. 바늘은 다시 23:17에 멈춰 있다.', '카운터 위 전화기 표시등이 파랗게 켜졌다. (파란 불의 전화기에서 근무 기록을 저장할 수 있다)']);
 }
 async function door214(o) {
-  if (!has('key214')) { sfx.deny(); return sayAll(['214호. 잠겨 있다. 객실 카드에는 「공실」.', '손잡이에 손을 대자… 미지근하게 따뜻하다.']); }
+  if (!has('key214')) { sfx.deny(); return sayAll(['214호. 잠겨 있다. 예약 카드에는 「공실」.', '손잡이에 손을 대자… 체온처럼 따뜻하다.']); }
   if (!G.flags.lightsDone) {
-    const c = await choose('214호. 열쇠는 있다. 손잡이가 따뜻하다.', ['그래도 문을 연다', '손을 뗀다']);
-    if (c === 0) return die(3, ['열쇠를 돌리자 문 안쪽에서 누군가 손잡이를 꽉 붙잡았다. 따뜻한 손이었다.'], '214호 손잡이가 따뜻하면 문을 열지 마십시오.');
+    const c = await choose('214호 마스터키를 쥐었다. 손잡이가 체온처럼 따뜻하다.', ['그래도 마스터키를 꽂는다', '손을 뗀다']);
+    if (c === 0) return die(3, ['열쇠를 돌리자 문 안쪽에서 누군가 손잡이를 꽉 붙잡았다. 따뜻한 손이었다.'], '손잡이가 따뜻하다면 그 방은 공실이 아닙니다. 마스터키를 꽂지 마십시오.');
     return;
   }
-  if (!G.flags.open_room214) { G.flags.open_room214 = true; sfx.unlock(); await say('손잡이가 차갑다. 214호 열쇠를 돌렸다.'); }
+  if (!G.flags.open_room214) { G.flags.open_room214 = true; sfx.unlock(); await say('손잡이가 차갑다. 214호 마스터키를 돌렸다.'); }
   await goto('room214', 5, 9, 'up');
 }
 async function guestTalk() {
   const g = ROOMS.corridor2.npcs[0]; g.dir = 'down';
   await sayAll([['손님', '…신입 직원이죠. 부탁 하나만 할게요.'], ['손님', '214호 열쇠를 지하 분실물함에 맡겨 뒀어요. 그 방 사람이 아직 퇴근을 못 했거든요.'], ['손님', '분실물함 번호는… 내가 이 호텔에서 마지막으로 본 시각이에요. 현관 시계가 기억하고 있죠.']]);
-  const c = await choose('그림자 없는 손님이 대답을 기다린다.', ['성함이 어떻게 되세요?', '알겠습니다']);
-  if (c === 0) return die(7, ['손님의 얼굴에서 표정이 지워졌다.', ['손님', '…이름은 묻지 말라고 했을 텐데.']], '그림자가 없는 손님의 이름을 묻지 마십시오.');
-  await say('손님', '고마워요. 승강기는… 0이 뜨면 기다려요.');
+  const c = await choose('그림자 없는 손님이 대답을 기다린다.', ['「성함과 객실 번호가 어떻게 되세요?」', '시선을 목 아래에 두고 「예약 확인 중입니다」라고 낮게 답한다']);
+  if (c === 0) return die(7, ['손님의 얼굴에서 표정이 지워졌다.', ['손님', '…이름은 묻지 말라고 했을 텐데.']], '그림자 없는 손님에게 이름과 객실 번호를 묻지 마십시오.');
+  await say('손님', '……고마워요. 승강기는… 0이 뜨면 물러서요.');
   G.flick = 0.5; await wait(300); G.flags.guestDone = true;
   await say('눈을 깜빡이자 창가에는 꽃병만 남아 있었다.');
 }
@@ -1770,10 +1820,10 @@ async function guestFirst() {
 }
 async function rosterAct() {
   if (has('roster')) return say('빈 책상.');
-  await say('책상 위에 근무 명부가 펼쳐져 있다.');
+  await say('책상 위에 근무 일지(출근부)가 펼쳐져 있다.');
   await showDoc('roster');
-  const c = await choose('마지막 줄이 비어 있다. 펜이 놓여 있다.', ['빈칸에 내 이름을 적는다', '명부를 챙긴다', '그냥 둔다']);
-  if (c === 0) return die(10, ['펜촉이 종이에 닿자, 잉크가 번지며 이름이 저절로 완성되었다.', '…등 뒤에서 누군가 "수고했어요"라고 속삭였다.'], '근무 명부의 빈칸에 자기 이름을 적지 마십시오.');
+  const c = await choose('마지막 줄이 「무기명」으로 비어 있다. 펜이 놓여 있다.', ['빈칸에 내 이름을 적는다', '근무 일지를 챙긴다', '그냥 둔다']);
+  if (c === 0) return die(10, ['펜촉이 종이에 닿자, 잉크가 번지며 이름이 저절로 완성되었다.', '…등 뒤에서 누군가 "수고했어요"라고 속삭였다.'], '근무 일지의 남은 빈칸에 절대 본인의 이름을 직접 적지 마십시오.');
   if (c === 1) await give('roster');
 }
 async function lostFound() {
@@ -1804,8 +1854,8 @@ async function mirror214() {
 
 /* ---------- 엔딩 ---------- */
 const ENDINGS = {
-  A: { no: 'ENDING A · 2', title: '퇴근 확인', text: ['명부의 빈칸에 「문정희」라고 적었다. 이번에는 잉크가 번지지 않았다.', '등 뒤에서 누군가 길게 숨을 내쉬었다. 「…퇴근 확인, 고마워요.」', '현관 잠금장치가 올라가고, 표시등이 초록색으로 바뀌었다.', '밖은 비가 그쳐 있었다. 돌아보니 현관 시계의 분침이 움직였다. 23:18.', '로비 유리문 너머, 백발의 여자가 처음으로 정문을 나서서, 새벽 쪽으로 걸어갔다.'], hint: '다른 결말이 하나 더 있습니다. 수칙 10번을 어긴다면…?' },
-  B: { no: 'ENDING B · 2', title: '야간 선임', text: ['명부의 빈칸에 내 이름을 적었다. 잉크가 번지며 글자가 종이 속으로 스며들었다.', '현관이 열렸다. 한 걸음 내딛자, 나는 카운터 뒤에 서 있었다.', '머리카락이 희게 바래 있다. 손에는 근무 수첩.', '정문이 열리고, 비에 젖은 신입이 쭈뼛거리며 들어온다.', '「신입 씨죠? 늦지 않았네요. 오늘 야간은 나랑 둘이에요.」'], hint: '214호의 일지를 끝까지 읽어 보세요.' }
+  A: { no: 'ENDING A · 2', title: '퇴근 확인', text: ['근무 일지의 무기명 칸에 「문정희」라고 적었다. 이번에는 잉크가 번지지 않았다.', '등 뒤에서 누군가 길게 숨을 내쉬었다. 「…퇴근 확인, 고마워요.」', '현관 잠금장치가 올라가고, 표시등이 초록색으로 바뀌었다.', '밖은 비가 그쳐 있었다. 돌아보니 현관 시계의 분침이 움직였다. 23:18.', '로비 유리문 너머, 백발의 여자가 처음으로 정문을 나서서, 새벽 쪽으로 걸어갔다.'], hint: '다른 결말이 하나 더 있습니다. 수칙 10번을 어긴다면…?' },
+  B: { no: 'ENDING B · 2', title: '야간 선임', text: ['근무 일지의 빈칸에 내 이름을 적었다. 잉크가 번지며 글자가 종이 속으로 스며들었다.', '현관이 열렸다. 한 걸음 내딛자, 나는 카운터 뒤에 서 있었다.', '머리카락이 희게 바래 있다. 손에는 근무 수첩.', '정문이 열리고, 비에 젖은 신입이 쭈뼛거리며 들어온다.', '「신입 씨죠? 늦지 않았네요. 오늘 야간은 나랑 둘이에요.」'], hint: '214호의 수첩을 끝까지 읽어 보세요.' }
 };
 function showEnding(k) {
   const e = ENDINGS[k];
